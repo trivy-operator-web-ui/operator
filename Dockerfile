@@ -14,4 +14,6 @@ WORKDIR /app
 
 COPY --from=build /app/target/release/trivy-operator-web-ui .
 
+EXPOSE 8080
+
 ENTRYPOINT [ "/app/trivy-operator-web-ui" ]

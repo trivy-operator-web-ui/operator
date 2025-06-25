@@ -17,10 +17,12 @@ spec:
       serviceAccountName: trivy-operator-web-ui
       containers:
       - name: trivy-operator-web-ui
-        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.2
+        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.6
         resources:
           limits:
             memory: 128Mi
           requests:
             cpu: 30m
+        ports:
+          - containerPort: 8080
 
