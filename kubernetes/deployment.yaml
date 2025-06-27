@@ -17,7 +17,7 @@ spec:
       serviceAccountName: trivy-operator-web-ui
       containers:
       - name: trivy-operator-web-ui
-        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.9
+        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.13
         resources:
           limits:
             memory: 128Mi

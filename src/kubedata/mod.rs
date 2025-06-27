@@ -2,7 +2,6 @@
 // kopium command: kopium --hide-kube -Af -
 // kopium version: 0.21.2
 
-#[allow(unused_imports)]
 mod prelude {
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
@@ -18,14 +17,14 @@ use self::prelude::*;
 /// Report is the actual vulnerability report data.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct VulnerabilityReportSpec {
+pub struct VulnerabilityReport {
     /// Artifact represents a standalone, executable package of software that includes everything needed to
     /// run an application.
-    pub report: VulnerabilityReport,
+    pub report: VulnerabilityReportSpec,
     pub metadata: ObjectMeta,
 }
 
-impl Resource for VulnerabilityReportSpec {
+impl Resource for VulnerabilityReport {
     const API_VERSION: &'static str = "aquasecurity.github.io/v1alpha1";
     const GROUP: &'static str = "aquasecurity.github.io";
     const VERSION: &'static str = "v1alpha1";
@@ -34,7 +33,7 @@ impl Resource for VulnerabilityReportSpec {
     type Scope = ClusterResourceScope;
 }
 
-impl Metadata for VulnerabilityReportSpec {
+impl Metadata for VulnerabilityReport {
     type Ty = ObjectMeta;
     fn metadata(&self) -> &Self::Ty {
         &self.metadata
@@ -46,30 +45,30 @@ impl Metadata for VulnerabilityReportSpec {
 
 /// Report is the actual vulnerability report data.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReport {
+pub struct VulnerabilityReportSpec {
     /// Artifact represents a standalone, executable package of software that includes everything needed to
     /// run an application.
-    pub artifact: VulnerabilityReportArtifact,
+    pub artifact: Artifact,
     /// OS information of the artifact
-    pub os: VulnerabilityReportOs,
+    pub os: OperatingSystem,
     /// Registry is the registry the Artifact was pulled from.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registry: Option<VulnerabilityReportRegistry>,
+    pub registry: Option<Registry>,
     /// Scanner is the scanner that generated this report.
-    pub scanner: VulnerabilityReportScanner,
+    pub scanner: Scanner,
     /// Summary is a summary of Vulnerability counts grouped by Severity.
-    pub summary: VulnerabilityReportSummary,
+    pub summary: Summary,
     /// UpdateTimestamp is a timestamp representing the server time in UTC when this report was updated.
     #[serde(rename = "updateTimestamp")]
     pub update_timestamp: String,
     /// Vulnerabilities is a list of operating system (OS) or application software Vulnerability items found in the Artifact.
-    pub vulnerabilities: Vec<VulnerabilityReportVulnerabilities>,
+    pub vulnerabilities: Vec<Vulnerabilities>,
 }
 
 /// Artifact represents a standalone, executable package of software that includes everything needed to
 /// run an application.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportArtifact {
+pub struct Artifact {
     /// Digest is a unique and immutable identifier of an Artifact.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub digest: Option<String>,
@@ -86,7 +85,7 @@ pub struct VulnerabilityReportArtifact {
 
 /// OS information of the artifact
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportOs {
+pub struct OperatingSystem {
     /// Eosl is true if OS version has reached end of service life
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub eosl: Option<bool>,
@@ -100,7 +99,7 @@ pub struct VulnerabilityReportOs {
 
 /// Registry is the registry the Artifact was pulled from.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportRegistry {
+pub struct Registry {
     /// Server the FQDN of registry server.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server: Option<String>,
@@ -108,7 +107,7 @@ pub struct VulnerabilityReportRegistry {
 
 /// Scanner is the scanner that generated this report.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportScanner {
+pub struct Scanner {
     /// Name the name of the scanner.
     pub name: String,
     /// Vendor the name of the vendor providing the scanner.
@@ -119,7 +118,7 @@ pub struct VulnerabilityReportScanner {
 
 /// Summary is a summary of Vulnerability counts grouped by Severity.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportSummary {
+pub struct Summary {
     /// CriticalCount is the number of vulnerabilities with Critical Severity.
     #[serde(rename = "criticalCount")]
     pub critical_count: i64,
@@ -142,11 +141,11 @@ pub struct VulnerabilityReportSummary {
 
 /// Vulnerability is the spec for a vulnerability record.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportVulnerabilities {
+pub struct Vulnerabilities {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub class: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cvss: Option<BTreeMap<String, VulnerabilityReportVulnerabilitiesCvss>>,
+    pub cvss: Option<BTreeMap<String, Cvss>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cvsssource: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -194,7 +193,7 @@ pub struct VulnerabilityReportVulnerabilities {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<f64>,
     /// Severity level of a vulnerability or a configuration audit check.
-    pub severity: VulnerabilityReportVulnerabilitiesSeverity,
+    pub severity: Severity,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<String>,
     pub title: String,
@@ -204,7 +203,7 @@ pub struct VulnerabilityReportVulnerabilities {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct VulnerabilityReportVulnerabilitiesCvss {
+pub struct Cvss {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "V2Score")]
     pub v2_score: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "V2Vector")]
@@ -221,7 +220,7 @@ pub struct VulnerabilityReportVulnerabilitiesCvss {
 
 /// Vulnerability is the spec for a vulnerability record.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub enum VulnerabilityReportVulnerabilitiesSeverity {
+pub enum Severity {
     #[serde(rename = "CRITICAL")]
     Critical,
     #[serde(rename = "HIGH")]

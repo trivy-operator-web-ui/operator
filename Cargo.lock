@@ -2421,6 +2421,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "derive_more",
  "futures",
  "k8s-openapi",
  "kube",
