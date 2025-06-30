@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trivy-operator-web-ui
+spec:
+  type: ClusterIP
+  selector:
+     app: trivy-operator-web-ui
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
