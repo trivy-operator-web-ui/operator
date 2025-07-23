@@ -15,9 +15,11 @@ spec:
         app: trivy-operator-web-ui
     spec:
       serviceAccountName: trivy-operator-web-ui
+      imagePullSecrets:
+      - name: regcred
       containers:
       - name: trivy-operator-web-ui
-        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.13
+        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.15
         resources:
           limits:
             memory: 128Mi

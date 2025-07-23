@@ -10,3 +10,7 @@ targetWorkloads: "pod,replicaset,replicationcontroller"
 
 operator:
   scanJobsConcurrentLimit: 1
+
+trivy:
+  image:
+    imagePullSecret: "regcred"
