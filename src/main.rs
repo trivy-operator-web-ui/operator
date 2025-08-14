@@ -1,7 +1,7 @@
 use std::result::Result::Ok;
 
-mod kubedata;
 mod dto;
+mod kubedata;
 mod utils;
 
 mod controller;
@@ -15,7 +15,6 @@ use state::State;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-
     let state = State::default();
 
     let controller = start_controller(state.clone());
