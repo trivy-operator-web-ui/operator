@@ -14,6 +14,8 @@ use kube::api::ObjectMeta;
 
 use self::prelude::*;
 
+use serde_repr::Serialize_repr;
+
 /// Report is the actual vulnerability report data.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -219,16 +221,17 @@ pub struct Cvss {
 }
 
 /// Vulnerability is the spec for a vulnerability record.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+#[derive(Serialize_repr, Deserialize, Clone, Debug, JsonSchema)]
+#[repr(u8)]
 pub enum Severity {
-    #[serde(rename = "CRITICAL")]
-    Critical,
-    #[serde(rename = "HIGH")]
-    High,
-    #[serde(rename = "MEDIUM")]
-    Medium,
-    #[serde(rename = "LOW")]
-    Low,
     #[serde(rename = "UNKNOWN")]
     Unknown,
+    #[serde(rename = "LOW")]
+    Low,
+    #[serde(rename = "MEDIUM")]
+    Medium,
+    #[serde(rename = "HIGH")]
+    High,
+    #[serde(rename = "CRITICAL")]
+    Critical,
 }
