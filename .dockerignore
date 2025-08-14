@@ -2,3 +2,6 @@ target
 helm
 kubernetes
 Dockerfile
+.gitignore
+README.md
+Dockerfile.proxy
