@@ -19,7 +19,7 @@ spec:
       - name: regcred
       containers:
       - name: trivy-operator-web-ui
-        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.15
+        image: ghcr.io/abwassim/trivy-operator-web-ui:1.0.24
         resources:
           limits:
             memory: 128Mi
