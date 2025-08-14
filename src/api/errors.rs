@@ -1,10 +1,13 @@
-use actix_web::{http::{header::ContentType, StatusCode}, HttpResponse, ResponseError};
+use actix_web::{
+    HttpResponse, ResponseError,
+    http::{StatusCode, header::ContentType},
+};
 use derive_more::derive::{Display, Error};
 
 #[derive(Debug, Display, Error)]
 pub enum Errors {
     #[display("Vulnerability Report not found")]
-    VulnReportNotFound
+    VulnReportNotFound,
 }
 
 impl ResponseError for Errors {

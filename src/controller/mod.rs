@@ -1,10 +1,10 @@
-use crate::{kubedata::VulnerabilityReport, utils::Simplify};
 use crate::state::State;
-use futures::{StreamExt, TryStreamExt};
+use crate::{kubedata::VulnerabilityReport, utils::Simplify};
+use futures::TryStreamExt;
 use kube::{
-    api::{Api},
-    runtime::{watcher, WatchStreamExt},
     Client,
+    api::Api,
+    runtime::{WatchStreamExt, watcher},
 };
 
 pub async fn start_controller(s: State) -> anyhow::Result<()> {
