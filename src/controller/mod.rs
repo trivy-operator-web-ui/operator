@@ -13,11 +13,16 @@ pub async fn start_controller(s: State) -> anyhow::Result<()> {
     let api: Api<VulnerabilityReport> = Api::all(client);
     let wc = watcher::Config::default();
 
-    let mut stream = watcher(api, wc).applied_objects().boxed();
-
-    while let Some(mut event) = stream.try_next().await? {
-        event.metadata.simplify();
-        s.vulnerability_reports.lock().unwrap().push(event);
-    }
+    watcher(api, wc)
+        .applied_objects()
+        .try_for_each(|mut report| {
+            let reports = s.vulnerability_reports.clone();
+            async move {
+                report.metadata.simplify();
+                reports.lock().unwrap().push(report);
+                Ok(())
+            }
+        })
+        .await?;
     Ok(())
 }
