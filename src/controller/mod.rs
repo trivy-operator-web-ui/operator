@@ -1,28 +1,5 @@
-use crate::state::State;
-use crate::{kubedata::VulnerabilityReport, utils::Simplify};
-use futures::TryStreamExt;
-use kube::{
-    Client,
-    api::Api,
-    runtime::{WatchStreamExt, watcher},
-};
+pub mod sbom_report;
+pub mod vulnerability_report;
 
-pub async fn start_controller(s: State) -> anyhow::Result<()> {
-    let client = Client::try_default().await?;
-
-    let api: Api<VulnerabilityReport> = Api::all(client);
-    let wc = watcher::Config::default();
-
-    watcher(api, wc)
-        .applied_objects()
-        .try_for_each(|mut report| {
-            let reports = s.vulnerability_reports.clone();
-            async move {
-                report.metadata.simplify();
-                reports.lock().unwrap().push(report);
-                Ok(())
-            }
-        })
-        .await?;
-    Ok(())
-}
+pub use sbom_report::start_sbom_report_controller;
+pub use vulnerability_report::start_vulnerability_report_controller;

@@ -1,80 +1,26 @@
-use crate::state::State;
-use crate::{dto::SimpleVulnerabilityReport, kubedata::VulnerabilityReport};
+mod sbom_report;
+pub use sbom_report::*;
 
-use actix_web::body::BoxBody;
-use actix_web::http::header::ContentType;
-use actix_web::web::Data;
-use actix_web::{
-    App, HttpRequest, HttpResponse, HttpServer, Responder, get,
-    web::{Path, scope},
-};
-use std::collections::HashSet;
-use std::result::Result::Ok;
+mod vulnerability_report;
+pub use vulnerability_report::*;
 
-mod errors;
-use errors::Errors;
+mod error;
 
-// Responder
-impl Responder for VulnerabilityReport {
-    type Body = BoxBody;
+use crate::kube_types::sbom_report::ImageSbomReport;
+use crate::kube_types::vulnerability_report::ImageVulnerabilityReport;
+use crate::kube_state::SharedState;
+use actix_web::{App, HttpServer};
 
-    fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
-        let body = serde_json::to_string(&self).unwrap();
-
-        // Create response and set content type
-        HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body)
-    }
-}
-
-#[get("/vulnreports")]
-async fn vulnreports(data: Data<State>) -> impl Responder {
-    let vulnerability_reports = data.vulnerability_reports.lock().unwrap().clone();
-    let iter: Vec<SimpleVulnerabilityReport> = vulnerability_reports
-        .iter()
-        .map(|x| SimpleVulnerabilityReport::from(x.clone()))
-        .collect();
-    HttpResponse::Ok().json(&iter)
-}
-
-#[get("/vulnreports/{id}")]
-async fn vulnreport_by_id(
-    data: Data<State>,
-    uid: Path<String>,
-) -> Result<VulnerabilityReport, Errors> {
-    let vulnerability_reports = data.vulnerability_reports.lock().unwrap().clone();
-    let uid = uid.into_inner();
-
-    let report = vulnerability_reports
-        .into_iter()
-        .find(|v| v.metadata.uid.clone().unwrap() == uid);
-
-    match report {
-        Some(r) => Ok(r),
-        None => Err(Errors::VulnReportNotFound),
-    }
-}
-
-#[get("/namespaces")]
-async fn namespaces(data: Data<State>) -> impl Responder {
-    let vulnerability_reports = data.vulnerability_reports.lock().unwrap().clone();
-    let mut namespaces: HashSet<String> = HashSet::new();
-    for v in vulnerability_reports.iter() {
-        namespaces.insert(v.metadata.namespace.clone().unwrap_or_default());
-    }
-
-    HttpResponse::Ok().json(namespaces)
-}
-
-pub async fn start_api(s: State) -> anyhow::Result<()> {
+pub async fn start_api(
+    vulnerability_report_state: SharedState<ImageVulnerabilityReport>,
+    sbom_report_state: SharedState<ImageSbomReport>,
+) -> anyhow::Result<()> {
     let server = HttpServer::new(move || {
-        App::new().app_data(Data::new(s.clone())).service(
-            scope("/api")
-                .service(vulnreports)
-                .service(vulnreport_by_id)
-                .service(namespaces),
-        )
+        App::new()
+            .service(build_vulnerability_report_image_scope(
+                vulnerability_report_state.clone(),
+            ))
+            .service(build_sbom_report_api_scope(sbom_report_state.clone()))
     })
     .bind(("0.0.0.0", 8080))?
     .shutdown_timeout(5);
