@@ -4,5 +4,5 @@ metadata:
   name: trivy-operator-reader
 rules:
 - apiGroups: ["aquasecurity.github.io"]
-  resources: ["vulnerabilityreports"]
+  resources: ["vulnerabilityreports", "sbomreports"]
   verbs: ["get", "watch", "list"]

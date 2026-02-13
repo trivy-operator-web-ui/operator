@@ -1,7 +1,7 @@
+.github
+deploy
 target
-helm
-kubernetes
-Dockerfile
+test_assets
 .gitignore
+Dockerfile
 README.md
-Dockerfile.proxy
