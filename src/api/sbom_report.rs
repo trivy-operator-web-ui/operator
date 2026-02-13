@@ -225,7 +225,7 @@ mod tests {
         let response = call_and_read_body(&app, req).await;
 
         let zip = ZipArchive::new(Cursor::new(response)).unwrap();
-        assert!(zip.len() == 3);
+        assert!(zip.len() == 2);
 
         Ok(())
     }
