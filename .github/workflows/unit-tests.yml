@@ -16,7 +16,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  tests:
+  unit-tests:
     name: 🧪 Lint & Tests
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +47,7 @@ jobs:
       - name: 🛠️ Install Kwok
         uses: kubernetes-sigs/kwok@main
         with:
-          KWOK_VERSION: ${{ env.KWOK_VERSION}}
+          KWOK_VERSION: ${{ env.KWOK_VERSION }}
           command: kwokctl
       
       - name: 🛠️ Setup Kwok cluster

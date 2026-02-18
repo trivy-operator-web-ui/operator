@@ -1,18 +1,9 @@
 use std::result::Result::Ok;
 
-mod dto;
-mod kube_types;
-
-mod controller;
-use controller::start::start_controller;
-
-mod api;
-use api::start_api;
-
-mod kube_state;
-use kube_state::SharedState;
-
-use crate::kube_types::{
+use trivy_operator_web_ui::controller::start::start_controller;
+use trivy_operator_web_ui::api::start_api;
+use trivy_operator_web_ui::kube_state::SharedState;
+use trivy_operator_web_ui::kube_types::{
     sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
 };
 

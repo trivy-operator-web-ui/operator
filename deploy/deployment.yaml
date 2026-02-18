@@ -1,22 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: alpine-bis
+  name: trivy-operator-web-ui
   namespace: trivy-operator-web-ui
   labels:
-    app: alpine
+    app: trivy-operator-web-ui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alpine
+      app: trivy-operator-web-ui
   template:
     metadata:
       labels:
-        app: alpine
+        app: trivy-operator-web-ui
     spec:
+      serviceAccountName: trivy-operator-web-ui
       containers:
-      - name: alpine
-        image: alpine:3.11.12
-        tty: true
-
+      - name: trivy-operator-web-ui
+        image: ghcr.io/trivy-operator-web-ui/operator:1.0.0
+        securityContext:
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 3000

@@ -9,5 +9,4 @@ resources:
   - clusterrole.yaml
   - rolebinding.yaml
   - serviceaccount.yaml
-  - ingress.yaml
   - service.yaml

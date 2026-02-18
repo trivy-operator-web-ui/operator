@@ -1,0 +1,23 @@
+info:
+  name: Get an Image Vunerability Report
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:8080/api/vulnerability-reports
+  body:
+    type: json
+    data: |-
+      {
+        "digest": "sha256:115d77efe6e256cefbcdf1d3292bede9339ef3952a2a83393cea217a3ffdef36",
+        "repository": "docker/desktop-storage-provisioner",
+        "tag": "v2.0"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
