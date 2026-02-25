@@ -6,9 +6,9 @@ metadata:
     trivy-operator.container.name: etcd
     trivy-operator.resource.kind: Pod
     trivy-operator.resource.name: etcd-docker-desktop
-    trivy-operator.resource.namespace: kube-system
+    trivy-operator.resource.namespace: etcd
   name: etcd-docker-desktop
-  namespace: kube-system
+  namespace: etcd
 report:
   artifact:
     digest: sha256:c6a9d11cc5c04b114ccdef39a9265eeef818e3d02f5359be035ae784097fdec5

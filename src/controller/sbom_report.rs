@@ -1,216 +1,136 @@
 use std::collections::HashSet;
 
 use crate::dto::Workload;
-use crate::kube_types::{SbomReport, sbom_report::ImageSbomReport};
 use crate::kube_state::SharedState;
+use crate::kube_types::{SbomReport, sbom_report::ImageSbomReport};
 
-use kube::runtime::watcher;
-use kube::runtime::watcher::{Config, Event};
+pub fn add_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageSbomReport>) {
+    let artifact = sbom_report.report.artifact.clone();
 
-use futures::{StreamExt, TryStreamExt};
-use kube::{Client, api::Api};
+    let labels = sbom_report.metadata.labels.unwrap();
 
-pub async fn start_sbom_report_controller(
-    shared_state: SharedState<ImageSbomReport>,
-    client: Client,
-) -> anyhow::Result<()> {
-    let api: Api<SbomReport> = Api::all(client);
+    let workload = Workload::new(labels);
 
-    let mut stream = watcher(api, Config::default()).boxed();
+    let mut owners = shared_state.owners.lock().unwrap();
 
-    while let Some(status) = stream.try_next().await? {
-        match status {
-            Event::Apply(sbom_report) | Event::InitApply(sbom_report) => {
-                let artifact = sbom_report.report.artifact.clone();
-
-                let labels = sbom_report.metadata.labels.unwrap();
-
-                let workload = Workload::new(labels);
-
-                let mut owners = shared_state.owners.lock().unwrap();
-
-                if let Some(x) = owners.get_mut(&artifact) {
-                    x.insert(workload);
-                } else {
-                    let mut sbom_reports = shared_state.reports.lock().unwrap();
-                    sbom_reports.insert(artifact.clone(), sbom_report.report);
-                    owners.insert(artifact, HashSet::from([workload]));
-                }
-            }
-            Event::Delete(sbom_report) => {
-                let artifact = sbom_report.report.artifact.clone();
-
-                let labels = sbom_report.metadata.labels.unwrap();
-
-                let workload = Workload::new(labels);
-
-                let mut owners = shared_state.owners.lock().unwrap();
-
-                let sbom_report_owners = owners.get_mut(&artifact).unwrap();
-
-                sbom_report_owners.remove(&workload);
-
-                if sbom_report_owners.is_empty() {
-                    let mut sbom_reports = shared_state.reports.lock().unwrap();
-                    sbom_reports.remove(&artifact);
-                    owners.remove(&artifact);
-                }
-            }
-            _ => {
-                continue;
-            }
-        }
+    if let Some(x) = owners.get_mut(&artifact) {
+        x.insert(workload);
+    } else {
+        let mut sbom_reports = shared_state.reports.lock().unwrap();
+        sbom_reports.insert(artifact.clone(), sbom_report.report);
+        owners.insert(artifact, HashSet::from([workload]));
     }
-    Ok(())
+}
+
+pub fn delete_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageSbomReport>) {
+    let artifact = sbom_report.report.artifact.clone();
+
+    let labels = sbom_report.metadata.labels.unwrap();
+
+    let workload = Workload::new(labels);
+
+    let mut owners = shared_state.owners.lock().unwrap();
+
+    let sbom_report_owners = owners.get_mut(&artifact).unwrap();
+
+    sbom_report_owners.remove(&workload);
+
+    if sbom_report_owners.is_empty() {
+        let mut sbom_reports = shared_state.reports.lock().unwrap();
+        sbom_reports.remove(&artifact);
+        owners.remove(&artifact);
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashSet, fs};
+
+    use anyhow::{Ok, Result};
+
+    use crate::{
+        controller::{add_sbom_report, delete_sbom_report},
+        dto::Workload,
+        kube_state::SharedState,
+        kube_types::{SbomReport, sbom_report::ImageSbomReport},
+    };
+
     // *************
     // ** HELPERS **
     // *************
 
-    use anyhow::Result;
-    use kube::{
-        Api, Client,
-        api::{DeleteParams, ListParams, PostParams},
-    };
-    use std::{collections::HashSet, fs, time::Duration};
-    use tokio::{sync::OnceCell, time::sleep};
-
-    use crate::{
-        controller::start_sbom_report_controller,
-        dto::Workload,
-        kube_types::{SbomReport, sbom_report::ImageSbomReport},
-        kube_state::SharedState,
-    };
-
-    static INIT: OnceCell<()> = OnceCell::const_new();
-    static TEST_NAMESPACES: [&str; 3] = ["kube-system", "rabbit-one", "rabbit-two"];
-
-    async fn cleanup_test_namespace(client: Client) -> Result<()> {
-        for namespace in TEST_NAMESPACES {
-            let api: Api<SbomReport> = Api::namespaced(client.clone(), namespace);
-            api.delete_collection(&DeleteParams::default(), &ListParams::default())
-                .await?;
-        }
-        Ok(())
-    }
-
-    async fn apply_test_resource(client: Client, name: &str) -> Result<SbomReport> {
+    fn read_test_vulnerability_report(name: &str) -> Result<SbomReport> {
         let report: SbomReport = serde_yaml::from_str(&fs::read_to_string(format!(
             "test_assets/sbom_reports/{}.yaml",
             name
         ))?)?;
 
-        let namespace = report.metadata.clone().namespace.unwrap();
-
-        let api: Api<SbomReport> = Api::namespaced(client, &namespace);
-        let params = PostParams::default();
-        api.create(&params, &report).await?;
-        sleep(Duration::from_secs(1)).await;
-
         Ok(report)
-    }
-
-    async fn delete_test_resource(client: Client, name: &str) -> Result<SbomReport> {
-        let report: SbomReport = serde_yaml::from_str(&fs::read_to_string(format!(
-            "test_assets/sbom_reports/{}.yaml",
-            name
-        ))?)?;
-
-        let name = report.metadata.clone().name.unwrap();
-        let namespace = report.metadata.clone().namespace.unwrap();
-
-        let api: Api<SbomReport> = Api::namespaced(client, &namespace);
-        let params = DeleteParams::default();
-        api.delete(&name, &params).await?;
-        sleep(Duration::from_secs(1)).await;
-
-        Ok(report)
-    }
-
-    async fn start_controller(state: SharedState<ImageSbomReport>) {
-        INIT.get_or_init(|| async {
-            let sbom_report_controller_client = Client::try_default()
-                .await
-                .expect("Coudln't create test controller client");
-            let sbom_report_controller =
-                start_sbom_report_controller(state.clone(), sbom_report_controller_client);
-            tokio::spawn(sbom_report_controller);
-        })
-        .await;
     }
 
     // ***********
     // ** TESTS **
     // ***********
 
-    #[tokio::test]
-    async fn controller_consumes() -> Result<()> {
-        let client = Client::try_default().await?;
-        cleanup_test_namespace(client.clone()).await?;
-
+    #[test]
+    fn new_reports_are_added() -> Result<()> {
         let state = SharedState::<ImageSbomReport>::default();
-        start_controller(state.clone()).await;
 
-        apply_test_resource(client.clone(), "coredns").await?;
+        let rabbit = read_test_vulnerability_report("rabbit-one").unwrap();
+        let etcd = read_test_vulnerability_report("etcd").unwrap();
 
-        let reports = state.reports.lock().unwrap();
+        let rabbit_artifact = rabbit.report.artifact.clone();
+        let etcd_artifact = etcd.report.artifact.clone();
 
-        assert!(reports.len() == 1);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn controller_handles_duplicate() -> Result<()> {
-        let client = Client::try_default().await?;
-        cleanup_test_namespace(client.clone()).await?;
-
-        let state = SharedState::<ImageSbomReport>::default();
-        start_controller(state.clone()).await;
-
-        let etcd = apply_test_resource(client.clone(), "etcd").await?;
+        add_sbom_report(rabbit.clone(), state.clone());
+        add_sbom_report(etcd.clone(), state.clone());
 
         let reports = state.reports.lock().unwrap();
         let owners = state.owners.lock().unwrap();
-        let etcd_owners = owners.get(&etcd.report.artifact).unwrap();
 
-        assert!(reports.len() == 1);
-        assert!(etcd_owners.len() == 1);
+        let rabbit_owners = owners.get(&rabbit_artifact).unwrap();
+        let etcd_owners = owners.get(&etcd_artifact).unwrap();
+
+        assert!(reports.len() == 2);
+
+        assert!(
+            rabbit_owners
+                == &HashSet::from([Workload {
+                    kind: "Pod".to_string(),
+                    name: "rabbit-one".to_string(),
+                    namespace: "rabbit-one".to_string(),
+                }])
+        );
         assert!(
             etcd_owners
                 == &HashSet::from([Workload {
                     kind: "Pod".to_string(),
                     name: "etcd-docker-desktop".to_string(),
-                    namespace: "kube-system".to_string(),
+                    namespace: "etcd".to_string(),
                 }])
         );
-        drop(reports);
-        drop(owners);
 
-        let rabbit_one = apply_test_resource(client.clone(), "rabbit-one")
-            .await
-            .unwrap();
+        Ok(())
+    }
 
-        let reports = state.reports.lock().unwrap();
-        let owners = state.owners.lock().unwrap();
-        let rabbit_owners = owners.get(&rabbit_one.report.artifact).unwrap();
+    #[test]
+    fn reports_with_same_artifacts_are_handled() -> Result<()> {
+        let state = SharedState::<ImageSbomReport>::default();
 
-        assert!(reports.len() == 2);
-        assert!(rabbit_owners.len() == 1);
-        drop(reports);
-        drop(owners);
+        let rabbit_one = read_test_vulnerability_report("rabbit-one").unwrap();
+        let rabbit_two = read_test_vulnerability_report("rabbit-two").unwrap();
 
-        apply_test_resource(client.clone(), "rabbit-two").await?;
+        let artifact = rabbit_one.report.artifact.clone();
+
+        add_sbom_report(rabbit_one.clone(), state.clone());
+        add_sbom_report(rabbit_two.clone(), state.clone());
 
         let reports = state.reports.lock().unwrap();
         let owners = state.owners.lock().unwrap();
-        let rabbit_owners = owners.get(&rabbit_one.report.artifact).unwrap();
 
-        assert!(reports.len() == 2);
-        assert!(rabbit_owners.len() == 2);
+        let rabbit_owners = owners.get(&artifact).unwrap();
+
+        assert!(reports.len() == 1);
         assert!(
             rabbit_owners
                 == &HashSet::from([
@@ -227,37 +147,57 @@ mod tests {
                 ])
         );
 
-        drop(reports);
-        drop(owners);
+        Ok(())
+    }
 
-        delete_test_resource(client.clone(), "rabbit-two").await?;
+    #[test]
+    fn report_is_fully_deleted_when_there_are_no_more_owners() -> Result<()> {
+        let state = SharedState::<ImageSbomReport>::default();
+
+        let rabbit = read_test_vulnerability_report("rabbit-one").unwrap();
+        let rabbit_artifact = rabbit.report.artifact.clone();
+
+        add_sbom_report(rabbit.clone(), state.clone());
+        delete_sbom_report(rabbit.clone(), state.clone());
 
         let reports = state.reports.lock().unwrap();
         let owners = state.owners.lock().unwrap();
-        let rabbit_owners = owners.get(&rabbit_one.report.artifact).unwrap();
 
-        assert!(reports.len() == 2);
-        assert!(rabbit_owners.len() == 1);
+        let rabbit_owners = owners.get(&rabbit_artifact);
+
+        assert!(reports.len() == 0);
+        assert!(rabbit_owners == None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn report_is_not_deleted_if_one_or_more_owners_remain() -> Result<()> {
+        let state = SharedState::<ImageSbomReport>::default();
+
+        let rabbit_one = read_test_vulnerability_report("rabbit-one").unwrap();
+        let rabbit_two = read_test_vulnerability_report("rabbit-two").unwrap();
+
+        let artifact = rabbit_one.report.artifact.clone();
+
+        add_sbom_report(rabbit_one.clone(), state.clone());
+        add_sbom_report(rabbit_two.clone(), state.clone());
+        delete_sbom_report(rabbit_one.clone(), state.clone());
+
+        let reports = state.reports.lock().unwrap();
+        let owners = state.owners.lock().unwrap();
+
+        let rabbit_owners = owners.get(&artifact).unwrap();
+
+        assert!(reports.len() == 1);
         assert!(
             rabbit_owners
                 == &HashSet::from([Workload {
                     kind: "Pod".to_string(),
-                    name: "rabbit-one".to_string(),
-                    namespace: "rabbit-one".to_string(),
+                    name: "rabbit-two".to_string(),
+                    namespace: "rabbit-two".to_string(),
                 }])
         );
-
-        drop(reports);
-        drop(owners);
-
-        delete_test_resource(client.clone(), "rabbit-one").await?;
-
-        let reports = state.reports.lock().unwrap();
-        let owners = state.owners.lock().unwrap();
-        let rabbit_owners = owners.get(&rabbit_one.report.artifact);
-
-        assert!(reports.len() == 1);
-        assert!(rabbit_owners.is_none());
 
         Ok(())
     }

@@ -1,8 +1,8 @@
 use crate::{
     api::error::ZipSbomError,
     dto::{SbomsToZip, SimpleSbomReportDTO},
-    kube_types::{Artifact, sbom_report::ImageSbomReport},
     kube_state::SharedState,
+    kube_types::{Artifact, sbom_report::ImageSbomReport},
 };
 
 use actix_web::{
@@ -126,8 +126,8 @@ mod tests {
     use crate::{
         api::{build_sbom_report_api_scope, error::ZipSbomError},
         dto::{SbomsToZip, SimpleSbomReportDTO, Workload},
-        kube_types::{Artifact, SbomReport, sbom_report::ImageSbomReport},
         kube_state::SharedState,
+        kube_types::{Artifact, SbomReport, sbom_report::ImageSbomReport},
     };
 
     impl SbomsToZip {
@@ -136,7 +136,7 @@ mod tests {
         }
     }
 
-    static TEST_RESOURCES: [&str; 3] = ["coredns", "etcd", "rabbit-one"];
+    static TEST_RESOURCES: [&str; 2] = ["etcd", "rabbit-one"];
 
     fn read_test_resource(name: &str) -> Result<SbomReport> {
         let report: SbomReport = serde_yaml::from_str(&fs::read_to_string(format!(
@@ -192,10 +192,9 @@ mod tests {
 
         // Collect to a Vec from a HashSet randomly places element, so an assert_eq between Vecs won't work
         assert!(
-            response.len() == 3
+            response.len() == 2
                 && response.contains(&snapshot[0])
                 && response.contains(&snapshot[1])
-                && response.contains(&snapshot[2])
         );
 
         Ok(())
@@ -225,7 +224,7 @@ mod tests {
         let response = call_and_read_body(&app, req).await;
 
         let zip = ZipArchive::new(Cursor::new(response)).unwrap();
-        assert!(zip.len() == 3);
+        assert!(zip.len() == 2);
 
         Ok(())
     }

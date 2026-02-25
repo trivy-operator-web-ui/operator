@@ -6,9 +6,9 @@ pub use vulnerability_report::*;
 
 mod error;
 
+use crate::kube_state::SharedState;
 use crate::kube_types::sbom_report::ImageSbomReport;
 use crate::kube_types::vulnerability_report::ImageVulnerabilityReport;
-use crate::kube_state::SharedState;
 use actix_web::{App, HttpServer};
 
 pub async fn start_api(
