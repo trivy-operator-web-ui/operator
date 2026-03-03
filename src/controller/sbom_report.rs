@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::dto::Workload;
 use crate::kube_state::SharedState;
 use crate::kube_types::{SbomReport, sbom_report::ImageSbomReport};
+use tracing::debug;
 
 pub fn add_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageSbomReport>) {
     let artifact = sbom_report.report.artifact.clone();
@@ -10,6 +11,8 @@ pub fn add_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageS
     let labels = sbom_report.metadata.labels.unwrap();
 
     let workload = Workload::new(labels);
+
+    debug!("Event::Apply|InitApply for SBOM Report {}/{}", &workload.namespace, &workload.name);
 
     let mut owners = shared_state.owners.lock().unwrap();
 
@@ -28,6 +31,8 @@ pub fn delete_sbom_report(sbom_report: SbomReport, shared_state: SharedState<Ima
     let labels = sbom_report.metadata.labels.unwrap();
 
     let workload = Workload::new(labels);
+
+    debug!("Event::Delete for SBOM Report {}/{}", &workload.namespace, &workload.name);
 
     let mut owners = shared_state.owners.lock().unwrap();
 

@@ -11,6 +11,7 @@ use api::start_api;
 
 mod kube_state;
 use kube_state::SharedState;
+use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::kube_types::{
     sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
@@ -22,6 +23,13 @@ use kube::Client;
 async fn main() -> anyhow::Result<()> {
     let vulnerability_reports_state = SharedState::<ImageVulnerabilityReport>::default();
     let sbom_reports_state = SharedState::<ImageSbomReport>::default();
+
+    let logger = tracing_subscriber::fmt::layer().compact();
+    let env_filter = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("error"))
+        .unwrap();
+
+    Registry::default().with(env_filter).with(logger).init();
 
     let client = Client::try_default().await?;
 
