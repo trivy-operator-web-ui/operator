@@ -10,17 +10,20 @@ use crate::kube_state::SharedState;
 use crate::kube_types::sbom_report::ImageSbomReport;
 use crate::kube_types::vulnerability_report::ImageVulnerabilityReport;
 use actix_web::{App, HttpServer};
+use actix_web::middleware::Logger;
 
 pub async fn start_api(
     vulnerability_report_state: SharedState<ImageVulnerabilityReport>,
     sbom_report_state: SharedState<ImageSbomReport>,
 ) -> anyhow::Result<()> {
+
     let server = HttpServer::new(move || {
         App::new()
             .service(build_vulnerability_report_image_scope(
                 vulnerability_report_state.clone(),
             ))
             .service(build_sbom_report_api_scope(sbom_report_state.clone()))
+            .wrap(Logger::default())
     })
     .bind(("0.0.0.0", 8080))?
     .shutdown_timeout(5);
