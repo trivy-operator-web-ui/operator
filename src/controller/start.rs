@@ -3,30 +3,31 @@ use kube::runtime::watcher::{Config, Event};
 
 use kube::{Api, Client};
 
+use crate::controller::handler::{
+    add_sbom_report, add_vulnerability_report, delete_sbom_report, delete_vulnerability_report,
+};
+use crate::controller::internal::StreamEvent;
 use anyhow::Result;
 use kube::runtime::watcher;
 
-use crate::controller::{
-    StreamEvent, add_sbom_report, add_vulnerability_report, delete_sbom_report,
-    delete_vulnerability_report,
-};
-use crate::kube_state::SharedState;
 use crate::kube_types::sbom_report::ImageSbomReport;
 use crate::kube_types::vulnerability_report::ImageVulnerabilityReport;
 use crate::kube_types::{SbomReport, VulnerabilityReport};
+use crate::states::ReportState;
 
 pub async fn start_controller(
-    client: Client,
-    vulnerability_report_shared_state: SharedState<ImageVulnerabilityReport>,
-    sbom_report_shared_state: SharedState<ImageSbomReport>,
+    vulnerability_report_shared_state: ReportState<ImageVulnerabilityReport>,
+    sbom_report_shared_state: ReportState<ImageSbomReport>,
 ) -> Result<()> {
-    let api: Api<VulnerabilityReport> = Api::all(client.clone());
-    let vulnerability_report_stream = watcher(api, Config::default())
+    let client = Client::try_default().await?;
+
+    let vulnerability_report_api: Api<VulnerabilityReport> = Api::all(client.clone());
+    let vulnerability_report_stream = watcher(vulnerability_report_api, Config::default())
         .map_ok(StreamEvent::VulnerabilityReport)
         .boxed();
 
-    let api: Api<SbomReport> = Api::all(client);
-    let sbom_report_stream = watcher(api, Config::default())
+    let sbom_report_api: Api<SbomReport> = Api::all(client);
+    let sbom_report_stream = watcher(sbom_report_api, Config::default())
         .map_ok(StreamEvent::SbomReport)
         .boxed();
 
@@ -76,29 +77,24 @@ mod tests {
     use tokio::sync::OnceCell;
     use tokio::time::sleep;
 
+    use crate::common_test_utils::{ETCD, NAMESPACES};
     use crate::controller::start::start_controller;
     use crate::kube_types::{SbomReport, VulnerabilityReport};
     use crate::{
-        kube_state::SharedState,
         kube_types::{
             sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
         },
+        states::ReportState,
     };
 
     static INIT: OnceCell<()> = OnceCell::const_new();
-    static TEST_NAMESPACES: [&str; 3] = ["etcd", "rabbit-one", "rabbit-two"];
 
     async fn start_test_controller(
-        vulnerability_report_shared_state: SharedState<ImageVulnerabilityReport>,
-        sbom_report_shared_state: SharedState<ImageSbomReport>,
+        vulnerability_report_shared_state: ReportState<ImageVulnerabilityReport>,
+        sbom_report_shared_state: ReportState<ImageSbomReport>,
     ) {
         INIT.get_or_init(|| async {
-            let client = Client::try_default()
-                .await
-                .expect("Coudln't create test controller client");
-
             let controller = start_controller(
-                client,
                 vulnerability_report_shared_state.clone(),
                 sbom_report_shared_state.clone(),
             );
@@ -168,7 +164,7 @@ mod tests {
     }
 
     async fn cleanup_test_namespace(client: Client) -> Result<()> {
-        for namespace in TEST_NAMESPACES {
+        for namespace in NAMESPACES {
             let vulnerability_report_api: Api<VulnerabilityReport> =
                 Api::namespaced(client.clone(), namespace);
             let sbom_report_api: Api<SbomReport> = Api::namespaced(client.clone(), namespace);
@@ -187,14 +183,14 @@ mod tests {
     #[tokio::test]
     async fn controller_consumes_vulnerability_reports() -> Result<()> {
         let client = Client::try_default().await?;
-        let state = SharedState::<ImageVulnerabilityReport>::default();
+        let state = ReportState::<ImageVulnerabilityReport>::default();
         let gvk =
             GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "VulnerabilityReport");
 
         cleanup_test_namespace(client.clone()).await?;
-        start_test_controller(state.clone(), SharedState::<ImageSbomReport>::default()).await;
+        start_test_controller(state.clone(), ReportState::<ImageSbomReport>::default()).await;
 
-        apply_test_resource(client.clone(), gvk.clone(), "rabbit-one").await?;
+        apply_test_resource(client.clone(), gvk.clone(), ETCD).await?;
 
         let vulnerability_reports = state.reports.lock().unwrap();
         let vulnerability_owners = state.owners.lock().unwrap();
@@ -205,7 +201,7 @@ mod tests {
         drop(vulnerability_reports);
         drop(vulnerability_owners);
 
-        delete_test_resource(client.clone(), gvk, "rabbit-one").await?;
+        delete_test_resource(client.clone(), gvk, ETCD).await?;
 
         let vulnerability_reports = state.reports.lock().unwrap();
         let vulnerability_owners = state.owners.lock().unwrap();
@@ -219,18 +215,18 @@ mod tests {
     #[tokio::test]
     async fn controller_consumes_sbom_reports() -> Result<()> {
         let client = Client::try_default().await?;
-        let state = SharedState::<ImageSbomReport>::default();
+        let state = ReportState::<ImageSbomReport>::default();
         let gvk: GroupVersionKind =
             GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "SbomReport");
 
         cleanup_test_namespace(client.clone()).await?;
         start_test_controller(
-            SharedState::<ImageVulnerabilityReport>::default(),
+            ReportState::<ImageVulnerabilityReport>::default(),
             state.clone(),
         )
         .await;
 
-        apply_test_resource(client.clone(), gvk.clone(), "rabbit-one").await?;
+        apply_test_resource(client.clone(), gvk.clone(), ETCD).await?;
 
         let sbom_reports = state.reports.lock().unwrap();
         let sbom_owners = state.owners.lock().unwrap();
@@ -241,7 +237,7 @@ mod tests {
         drop(sbom_reports);
         drop(sbom_owners);
 
-        delete_test_resource(client.clone(), gvk, "rabbit-one").await?;
+        delete_test_resource(client.clone(), gvk, ETCD).await?;
 
         let sbom_reports = state.reports.lock().unwrap();
         let sbom_owners = state.owners.lock().unwrap();
