@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::dto::Workload;
 use crate::kube_types::Artifact;
+use crate::kube_types::Workload;
 
 #[derive(Clone, Default)]
-pub struct SharedState<T> {
+pub struct ReportState<T> {
     pub reports: Arc<Mutex<HashMap<Artifact, T>>>,
     pub owners: Arc<Mutex<HashMap<Artifact, HashSet<Workload>>>>,
 }

@@ -1,18 +1,21 @@
 use std::collections::HashSet;
 
-use crate::dto::Workload;
-use crate::kube_state::SharedState;
+use crate::kube_types::Workload;
 use crate::kube_types::{SbomReport, sbom_report::ImageSbomReport};
+use crate::states::ReportState;
 use tracing::debug;
 
-pub fn add_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageSbomReport>) {
+pub fn add_sbom_report(sbom_report: SbomReport, shared_state: ReportState<ImageSbomReport>) {
     let artifact = sbom_report.report.artifact.clone();
 
     let labels = sbom_report.metadata.labels.unwrap();
 
     let workload = Workload::new(labels);
 
-    debug!("Event::Apply|InitApply for SBOM Report {}/{}", &workload.namespace, &workload.name);
+    debug!(
+        "Event::Apply|InitApply for SBOM Report {}/{}",
+        &workload.namespace, &workload.name
+    );
 
     let mut owners = shared_state.owners.lock().unwrap();
 
@@ -25,14 +28,17 @@ pub fn add_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageS
     }
 }
 
-pub fn delete_sbom_report(sbom_report: SbomReport, shared_state: SharedState<ImageSbomReport>) {
+pub fn delete_sbom_report(sbom_report: SbomReport, shared_state: ReportState<ImageSbomReport>) {
     let artifact = sbom_report.report.artifact.clone();
 
     let labels = sbom_report.metadata.labels.unwrap();
 
     let workload = Workload::new(labels);
 
-    debug!("Event::Delete for SBOM Report {}/{}", &workload.namespace, &workload.name);
+    debug!(
+        "Event::Delete for SBOM Report {}/{}",
+        &workload.namespace, &workload.name
+    );
 
     let mut owners = shared_state.owners.lock().unwrap();
 
@@ -49,40 +55,23 @@ pub fn delete_sbom_report(sbom_report: SbomReport, shared_state: SharedState<Ima
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, fs};
+    use std::collections::HashSet;
 
     use anyhow::{Ok, Result};
 
     use crate::{
-        controller::{add_sbom_report, delete_sbom_report},
-        dto::Workload,
-        kube_state::SharedState,
-        kube_types::{SbomReport, sbom_report::ImageSbomReport},
+        common_test_utils::{ETCD, RABBIT_ONE, RABBIT_TWO, read_test_sbom_report},
+        controller::handler::sbom_report::{add_sbom_report, delete_sbom_report},
+        kube_types::{Workload, sbom_report::ImageSbomReport},
+        states::ReportState,
     };
-
-    // *************
-    // ** HELPERS **
-    // *************
-
-    fn read_test_vulnerability_report(name: &str) -> Result<SbomReport> {
-        let report: SbomReport = serde_yaml::from_str(&fs::read_to_string(format!(
-            "test_assets/sbom_reports/{}.yaml",
-            name
-        ))?)?;
-
-        Ok(report)
-    }
-
-    // ***********
-    // ** TESTS **
-    // ***********
 
     #[test]
     fn new_reports_are_added() -> Result<()> {
-        let state = SharedState::<ImageSbomReport>::default();
+        let state = ReportState::<ImageSbomReport>::default();
 
-        let rabbit = read_test_vulnerability_report("rabbit-one").unwrap();
-        let etcd = read_test_vulnerability_report("etcd").unwrap();
+        let rabbit = read_test_sbom_report(RABBIT_ONE).unwrap();
+        let etcd = read_test_sbom_report(ETCD).unwrap();
 
         let rabbit_artifact = rabbit.report.artifact.clone();
         let etcd_artifact = etcd.report.artifact.clone();
@@ -120,10 +109,10 @@ mod tests {
 
     #[test]
     fn reports_with_same_artifacts_are_handled() -> Result<()> {
-        let state = SharedState::<ImageSbomReport>::default();
+        let state = ReportState::<ImageSbomReport>::default();
 
-        let rabbit_one = read_test_vulnerability_report("rabbit-one").unwrap();
-        let rabbit_two = read_test_vulnerability_report("rabbit-two").unwrap();
+        let rabbit_one = read_test_sbom_report(RABBIT_ONE).unwrap();
+        let rabbit_two = read_test_sbom_report(RABBIT_TWO).unwrap();
 
         let artifact = rabbit_one.report.artifact.clone();
 
@@ -157,9 +146,9 @@ mod tests {
 
     #[test]
     fn report_is_fully_deleted_when_there_are_no_more_owners() -> Result<()> {
-        let state = SharedState::<ImageSbomReport>::default();
+        let state = ReportState::<ImageSbomReport>::default();
 
-        let rabbit = read_test_vulnerability_report("rabbit-one").unwrap();
+        let rabbit = read_test_sbom_report(RABBIT_ONE).unwrap();
         let rabbit_artifact = rabbit.report.artifact.clone();
 
         add_sbom_report(rabbit.clone(), state.clone());
@@ -178,10 +167,10 @@ mod tests {
 
     #[test]
     fn report_is_not_deleted_if_one_or_more_owners_remain() -> Result<()> {
-        let state = SharedState::<ImageSbomReport>::default();
+        let state = ReportState::<ImageSbomReport>::default();
 
-        let rabbit_one = read_test_vulnerability_report("rabbit-one").unwrap();
-        let rabbit_two = read_test_vulnerability_report("rabbit-two").unwrap();
+        let rabbit_one = read_test_sbom_report(RABBIT_ONE).unwrap();
+        let rabbit_two = read_test_sbom_report(RABBIT_TWO).unwrap();
 
         let artifact = rabbit_one.report.artifact.clone();
 
