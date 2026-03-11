@@ -1,4 +1,4 @@
-mod dto;
+pub mod dto;
 mod error;
 mod middleware;
 mod routes;

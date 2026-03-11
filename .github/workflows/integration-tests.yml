@@ -1,0 +1,78 @@
+name: 🧪 Tests and Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/tests.yml"
+
+env:
+  KWOK_VERSION: "v0.7.0"
+  RUST_VERSION: "1.93.1"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests:
+    name: 🧪 Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository code
+        uses: actions/checkout@v5
+
+      - name: 🛠️ Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📦 Build
+        uses: docker/build-push-action@v6
+        with:
+          tags: user/app:latest
+
+      - name: 🛠️ Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: 📦 Rust cache 
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+
+      - name: 🛠️ Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: 🛠️ Install llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: 🛠️ Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+  
+      - name: 🛠️ Setup Kind Cluster
+        run: |
+          kubectl apply -f test_assets/crds/sbom_report.yaml
+          kubectl apply -f test_assets/crds/vulnerability_report.yaml
+          kubectl create namespace etcd
+          kubectl create namespace rabbit-one
+          kubectl create namespace rabbit-two
+      
+      - name: 🛠️ Install Helm
+        uses: azure/setup-helm@v4.3.0
+
+      - name: 🛠️ Install Trivy Operator Web Ui
+        run: |
+          echo "Install application"
+        
+      - name: 🧪 Integration Tests
+        run: |
+          cargo llvm-cov nextest -j1

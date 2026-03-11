@@ -68,18 +68,15 @@ pub async fn start_controller(
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use std::time::Duration;
-
-    use anyhow::{Error, Result};
-    use kube::api::{DeleteParams, DynamicObject, GroupVersionKind, ListParams, PostParams};
-    use kube::{Api, Client};
+    use anyhow::Result;
+    use kube::Client;
     use tokio::sync::OnceCell;
-    use tokio::time::sleep;
 
-    use crate::common_test_utils::{ETCD, NAMESPACES};
+    use crate::common_test_utils::{
+        ETCD, SBOM_REPORT_GVK, VULNERABILITY_REPORT_GVK, apply_test_resource, cleanup_test_namespace, delete_test_resource
+    };
     use crate::controller::start::start_controller;
-    use crate::kube_types::{SbomReport, VulnerabilityReport};
+
     use crate::{
         kube_types::{
             sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
@@ -104,88 +101,11 @@ mod tests {
         .await;
     }
 
-    async fn apply_test_resource(
-        client: Client,
-        gvk: GroupVersionKind,
-        name: &str,
-    ) -> Result<DynamicObject> {
-        let test_resource_folder: Result<&str> = match gvk.kind.as_str() {
-            "SbomReport" => Ok("sbom_reports"),
-            "VulnerabilityReport" => Ok("vulnerability_reports"),
-            _ => Err(Error::msg("Unknown GVK to map to a test folder")),
-        };
-
-        let report: DynamicObject = serde_yaml::from_str(&fs::read_to_string(format!(
-            "test_assets/{}/{}.yaml",
-            test_resource_folder.unwrap(),
-            name
-        ))?)?;
-
-        let namespace = report.metadata.clone().namespace.unwrap();
-
-        let (ar, _caps) = kube::discovery::pinned_kind(&client, &gvk).await?;
-        let api = Api::<DynamicObject>::namespaced_with(client, &namespace, &ar);
-        let params = PostParams::default();
-
-        api.create(&params, &report).await?;
-        sleep(Duration::from_secs(1)).await;
-
-        Ok(report)
-    }
-
-    async fn delete_test_resource(
-        client: Client,
-        gvk: GroupVersionKind,
-        name: &str,
-    ) -> Result<DynamicObject> {
-        let test_resource_folder: Result<&str> = match gvk.kind.as_str() {
-            "SbomReport" => Ok("sbom_reports"),
-            "VulnerabilityReport" => Ok("vulnerability_reports"),
-            _ => Err(Error::msg("Unknown GVK to map to a test folder")),
-        };
-
-        let report: DynamicObject = serde_yaml::from_str(&fs::read_to_string(format!(
-            "test_assets/{}/{}.yaml",
-            test_resource_folder.unwrap(),
-            name
-        ))?)?;
-
-        let name = report.metadata.clone().name.unwrap();
-        let namespace = report.metadata.clone().namespace.unwrap();
-
-        let (ar, _caps) = kube::discovery::pinned_kind(&client, &gvk).await?;
-        let api = Api::<DynamicObject>::namespaced_with(client, &namespace, &ar);
-        let params = DeleteParams::default();
-
-        api.delete(&name, &params).await?;
-        sleep(Duration::from_secs(1)).await;
-
-        Ok(report)
-    }
-
-    async fn cleanup_test_namespace(client: Client) -> Result<()> {
-        for namespace in NAMESPACES {
-            let vulnerability_report_api: Api<VulnerabilityReport> =
-                Api::namespaced(client.clone(), namespace);
-            let sbom_report_api: Api<SbomReport> = Api::namespaced(client.clone(), namespace);
-
-            vulnerability_report_api
-                .delete_collection(&DeleteParams::default(), &ListParams::default())
-                .await?;
-
-            sbom_report_api
-                .delete_collection(&DeleteParams::default(), &ListParams::default())
-                .await?;
-        }
-        Ok(())
-    }
-
     #[tokio::test]
     async fn controller_consumes_vulnerability_reports() -> Result<()> {
         let client = Client::try_default().await?;
         let state = ReportState::<ImageVulnerabilityReport>::default();
-        let gvk =
-            GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "VulnerabilityReport");
+        let gvk = VULNERABILITY_REPORT_GVK;
 
         cleanup_test_namespace(client.clone()).await?;
         start_test_controller(state.clone(), ReportState::<ImageSbomReport>::default()).await;
@@ -201,7 +121,7 @@ mod tests {
         drop(vulnerability_reports);
         drop(vulnerability_owners);
 
-        delete_test_resource(client.clone(), gvk, ETCD).await?;
+        delete_test_resource(client.clone(), gvk.clone(), ETCD).await?;
 
         let vulnerability_reports = state.reports.lock().unwrap();
         let vulnerability_owners = state.owners.lock().unwrap();
@@ -216,8 +136,7 @@ mod tests {
     async fn controller_consumes_sbom_reports() -> Result<()> {
         let client = Client::try_default().await?;
         let state = ReportState::<ImageSbomReport>::default();
-        let gvk: GroupVersionKind =
-            GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "SbomReport");
+        let gvk = SBOM_REPORT_GVK;
 
         cleanup_test_namespace(client.clone()).await?;
         start_test_controller(
@@ -237,7 +156,7 @@ mod tests {
         drop(sbom_reports);
         drop(sbom_owners);
 
-        delete_test_resource(client.clone(), gvk, ETCD).await?;
+        delete_test_resource(client.clone(), gvk.clone(), ETCD).await?;
 
         let sbom_reports = state.reports.lock().unwrap();
         let sbom_owners = state.owners.lock().unwrap();

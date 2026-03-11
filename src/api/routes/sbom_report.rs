@@ -19,24 +19,26 @@ use chrono::Local;
 
 use actix_web::http::header::ContentDisposition;
 
+const SCOPE: &str = "/api/sbom-reports";
+
 pub fn build_sbom_report_api_service(
     sbom_report_service: SbomReportService,
 ) -> impl HttpServiceFactory {
-    scope("/api/sbom-reports")
+    scope(SCOPE)
         .app_data(Data::new(sbom_report_service))
         .service(simple_sbom_reports)
         .service(download_sbom_archive)
         .wrap(AuthenticationMiddlewareFactory::new())
 }
 
-#[get("")]
-pub async fn simple_sbom_reports(sbom_report_service: Data<SbomReportService>) -> impl Responder {
+#[get("/simple")]
+async fn simple_sbom_reports(sbom_report_service: Data<SbomReportService>) -> impl Responder {
     let simple_sbom_reports = sbom_report_service.get_simple_sbom_reports();
     HttpResponse::Ok().json(&simple_sbom_reports)
 }
 
 #[post("/download")]
-pub async fn download_sbom_archive(
+async fn download_sbom_archive(
     sbom_report_service: Data<SbomReportService>,
     artifacts: Json<Vec<Artifact>>,
 ) -> Result<HttpResponse, ZipSbomError> {
@@ -63,6 +65,7 @@ pub async fn download_sbom_archive(
 mod tests {
     use actix_web::{
         App,
+        http::StatusCode,
         test::{self},
         web::Data,
     };
@@ -71,13 +74,40 @@ mod tests {
 
     use crate::{
         api::{
-            routes::build_sbom_report_api_service,
+            routes::{build_sbom_report_api_service, sbom_report::SCOPE},
             services::tests_utils::{
                 init_cookie_service, init_jwt_service, init_sbom_report_service,
             },
         },
         common_test_utils::{ETCD, RABBIT_ONE, read_test_sbom_report},
     };
+
+    const SIMPLE_PATH: &str = "simple";
+    const DOWNLOAD_PATH: &str = "download";
+
+    #[actix_web::test]
+    async fn service_is_authentication_protected() -> Result<()> {
+        let sbom_report_service = init_sbom_report_service();
+        let jwt_service = init_jwt_service();
+        let cookie_service = init_cookie_service();
+
+        let app = init_service(
+            App::new()
+                .app_data(Data::new(jwt_service.clone()))
+                .app_data(Data::new(cookie_service.clone()))
+                .service(build_sbom_report_api_service(sbom_report_service)),
+        )
+        .await;
+
+        let path = format!("{}/{}", SCOPE, SIMPLE_PATH);
+        let req = TestRequest::get().uri(&path).to_request();
+
+        let resp = test::call_service(&app, req).await;
+
+        assert!(resp.status() == StatusCode::UNAUTHORIZED);
+
+        Ok(())
+    }
 
     #[actix_web::test]
     async fn get_simple_reports() -> Result<()> {
@@ -96,9 +126,10 @@ mod tests {
         let token = jwt_service.generate();
         let cookie = cookie_service.create_jwt_cookie(&token);
 
+        let path = format!("{}/{}", SCOPE, SIMPLE_PATH);
         let req = TestRequest::get()
             .cookie(cookie)
-            .uri("/api/sbom-reports")
+            .uri(&path)
             .to_request();
 
         let resp = test::call_service(&app, req).await;
@@ -130,8 +161,9 @@ mod tests {
             read_test_sbom_report(RABBIT_ONE).unwrap().report.artifact,
         ]);
 
+        let path = format!("{}/{}", SCOPE, DOWNLOAD_PATH);
         let req = TestRequest::post()
-            .uri("/api/sbom-reports/download")
+            .uri(&path)
             .cookie(cookie)
             .set_json(existing_artifacts)
             .to_request();
@@ -165,8 +197,9 @@ mod tests {
             read_test_sbom_report(RABBIT_ONE).unwrap().report.artifact,
         ]);
 
+        let path = format!("{}/{}", SCOPE, DOWNLOAD_PATH);
         let req = TestRequest::post()
-            .uri("/api/sbom-reports/download")
+            .uri(&path)
             .cookie(cookie)
             .set_json(existing_artifacts)
             .to_request();
