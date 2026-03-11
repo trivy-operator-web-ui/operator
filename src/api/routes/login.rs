@@ -8,14 +8,16 @@ use actix_web::{
     web::{Data, Json, scope},
 };
 
+const SCOPE: &str = "/api/login";
+
 pub fn build_login_service(user_service: UserService) -> Scope {
-    scope("/api/login")
+    scope(SCOPE)
         .app_data(Data::new(user_service))
         .service(login)
 }
 
 #[post("")]
-pub async fn login(
+async fn login(
     jwt_service: Data<JwtService>,
     cookie_service: Data<CookieService>,
     user_service: Data<UserService>,
@@ -45,7 +47,7 @@ mod tests {
     use crate::{
         api::{
             dto::Credentials,
-            routes::build_login_service,
+            routes::{build_login_service, login::SCOPE},
             services::{
                 CookieService,
                 tests_utils::{init_cookie_service, init_jwt_service, init_user_service},
@@ -53,12 +55,6 @@ mod tests {
         },
         common_test_utils::{TEST_PASSWORD, TEST_USERNAME},
     };
-
-    impl Credentials {
-        pub fn new(username: String, password: String) -> Credentials {
-            Credentials { username, password }
-        }
-    }
 
     #[actix_web::test]
     async fn login_with_invalid_credentials() -> Result<()> {
@@ -77,7 +73,7 @@ mod tests {
         let credentials = Credentials::new("dummy".to_string(), "dummy".to_string());
 
         let req = TestRequest::post()
-            .uri("/api/login")
+            .uri(SCOPE)
             .set_json(credentials)
             .to_request();
 
@@ -105,7 +101,7 @@ mod tests {
         let credentials = Credentials::new(TEST_USERNAME.to_string(), TEST_PASSWORD.to_string());
 
         let req = TestRequest::post()
-            .uri("/api/login")
+            .uri(SCOPE)
             .set_json(credentials)
             .to_request();
 

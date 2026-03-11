@@ -1,20 +1,11 @@
 use std::result::Result::Ok;
 
-mod kube_types;
-
-mod controller;
-use controller::start_controller;
-
-mod api;
-use api::start_api;
-
-mod states;
-
-use states::ReportState;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt, util::SubscriberInitExt};
-
-use crate::kube_types::{
-    sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
+use trivy_operator_web_ui::{
+    api::start_api,
+    controller::start_controller,
+    kube_types::{sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport},
+    states::ReportState,
 };
 
 use std::env;
@@ -48,10 +39,13 @@ async fn main() -> anyhow::Result<()> {
         password,
     );
 
-    tokio::join!(api, controller).1?;
+    let controller = tokio::spawn(controller);
+    let api = tokio::spawn(api);
+
+    tokio::select! {
+        res = controller => println!("controller exited: {:?}", res),
+        res = api => println!("api exited: {:?}", res),
+    }
 
     Ok(())
 }
-
-#[cfg(test)]
-mod common_test_utils;

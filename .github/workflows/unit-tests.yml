@@ -66,4 +66,4 @@ jobs:
         
       - name: 🧪 Unit Tests
         run: |
-          cargo llvm-cov nextest -j1
+          cargo llvm-cov nextest test --no-fail-fast --lib -j1

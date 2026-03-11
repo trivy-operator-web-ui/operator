@@ -5,8 +5,7 @@ use kube::{
 };
 use std::{fs, sync::LazyLock, time::Duration};
 use tokio::time::sleep;
-
-use crate::{
+use trivy_operator_web_ui::{
     api::dto::Credentials,
     kube_types::{SbomReport, VulnerabilityReport},
 };
@@ -31,8 +30,8 @@ pub const VULNERABILITY_REPORT_KIND: &str = "VulnerabilityReport";
 
 pub const VULNERABILITY_REPORT_GVK: LazyLock<GroupVersionKind> = LazyLock::new(|| {
     GroupVersionKind::gvk(
-        VULNERABILITY_REPORT_GROUP,
-        VULNERABILITY_REPORT_VERSION,
+        "aquasecurity.github.io",
+        "v1alpha1",
         VULNERABILITY_REPORT_KIND,
     )
 });
@@ -44,30 +43,6 @@ pub const SBOM_REPORT_KIND: &str = "SbomReport";
 pub const SBOM_REPORT_GVK: LazyLock<GroupVersionKind> = LazyLock::new(|| {
     GroupVersionKind::gvk(SBOM_REPORT_GROUP, SBOM_REPORT_VERSION, SBOM_REPORT_KIND)
 });
-
-impl Credentials {
-    pub fn new(username: String, password: String) -> Credentials {
-        Credentials { username, password }
-    }
-}
-
-pub fn read_test_vulnerability_report(name: &str) -> Result<VulnerabilityReport> {
-    let report: VulnerabilityReport = serde_yaml::from_str(&fs::read_to_string(format!(
-        "{}/{}/{}.yaml",
-        ROOT_FOLDER_TEST_ASSESTS, VULNERABILITY_REPORT_FOLDER, name,
-    ))?)?;
-
-    Ok(report)
-}
-
-pub fn read_test_sbom_report(name: &str) -> Result<SbomReport> {
-    let report: SbomReport = serde_yaml::from_str(&fs::read_to_string(format!(
-        "{}/{}/{}.yaml",
-        ROOT_FOLDER_TEST_ASSESTS, SBOM_REPORT_FOLDER, name
-    ))?)?;
-
-    Ok(report)
-}
 
 pub async fn apply_test_resource(
     client: Client,
@@ -157,7 +132,10 @@ pub fn get_login_endpoint() -> String {
 
 pub async fn get_jwt_from_api(http_client: awc::Client) -> String {
     let login_endpoint = get_login_endpoint();
-    let credentials = Credentials::new(TEST_USERNAME.to_string(), TEST_PASSWORD.to_string());
+    let credentials = Credentials {
+        username: TEST_USERNAME.to_string(),
+        password: TEST_PASSWORD.to_string(),
+    };
 
     let res = http_client
         .post(&login_endpoint)

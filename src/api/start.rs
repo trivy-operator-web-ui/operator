@@ -1,5 +1,6 @@
 use crate::api::routes::{
-    build_login_service, build_sbom_report_api_service, build_vulnerability_report_image_service,
+    build_health_api_service, build_login_service, build_sbom_report_api_service,
+    build_vulnerability_report_image_service,
 };
 use crate::api::services::{
     CookieService, JwtService, SbomReportService, UserService, VulnerabilityReportService,
@@ -34,7 +35,9 @@ pub async fn start_api(
             ))
             .service(build_sbom_report_api_service(sbom_report_service.clone()))
             .service(build_login_service(user_service.clone()))
+            .service(build_health_api_service())
     })
+    .workers(4)
     .bind(("0.0.0.0", 8080))?
     .shutdown_timeout(5);
 

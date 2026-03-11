@@ -1,0 +1,14 @@
+operator:
+  image:
+    repository: "ghcr.io/trivy-operator-web-ui/operator"
+    pullPolicy: IfNotPresent
+
+  portal:
+    username: "username"
+    password: "password"
+
+frontend:
+  image:
+    repository: "nginx"
+    pullPolicy: IfNotPresent
+    tag: "latest"

@@ -1,0 +1,18 @@
+pre_bump_hooks = [
+    "cargo set-version {{version}}",
+    "crane tag ghcr.io/trivy-operator-web-ui/operator:${GITHUB_SHA} {{version}}"
+]
+
+post_bump_hooks = [
+    "git push --tags origin main"
+]
+
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+repository = "operator"
+owner = "trivy-operator-web-ui"
+authors = [
+  { username = "ABWassim", signature = "Wassim Ahmed-Belkacem"}
+]
