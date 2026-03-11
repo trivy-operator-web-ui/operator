@@ -1,0 +1,61 @@
+name: 📦 Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: 📦 SemVer Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔽 Checkout repository code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: 🤖 Configure bot user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config --global user.name "github-actions[bot]"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 🔒 Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: 🛠️ Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: 🛠️ Install cargo-edit
+        run: |
+          cargo install cargo-edit
+
+      - name: 🛠️ Setup Crane
+        run: |
+          mkdir crane
+          wget https://github.com/google/go-containerregistry/releases/download/v0.21.3/go-containerregistry_Linux_x86_64.tar.gz
+          tar -xf go-containerregistry_Linux_x86_64.tar.gz -C ./crane
+          sudo mv ./crane/crane /usr/bin
+          rm -r go-containerregistry_Linux_x86_64.tar.gz crane
+
+      - name: 🛠️ Install Cocogitto
+        run: |
+          wget https://github.com/cocogitto/cocogitto/releases/download/7.0.0/cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz
+          tar -xf cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz
+          sudo mv x86_64-unknown-linux-musl/cog /usr/bin
+          rm -r cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz x86_64-unknown-linux-musl
+
+      - name: 📦 Release and Publish
+        run: |
+          cog bump --auto --skip-ci

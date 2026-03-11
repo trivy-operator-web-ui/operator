@@ -1,0 +1,138 @@
+name: 🧪 Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/tests.yml"
+
+
+jobs:
+  tests:
+    name: 🧪 Integration Tests
+    runs-on: ubuntu-latest
+    env:
+      KWOK_VERSION: "v0.7.0"
+      RUST_VERSION: "1.93.1"
+      IMAGE_REF: ghcr.io/trivy-operator-web-ui/operator:${{ github.sha }}
+      KIND_CLUSTER_NAME: "operator-tests"
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: 📦 Checkout repository code
+        uses: actions/checkout@v6
+
+      - name: 🛠️ Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: 🔒 Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: 📦 Build
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          load: true
+          tags: ${{ env.IMAGE_REF }}
+
+      - name: 🛠️ Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: 📦 Rust cache 
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+
+      - name: 🛠️ Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: 🛠️ Install llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: 🛠️ Install Helm
+        uses: azure/setup-helm@v4.3.0
+
+      - name: 🛠️ Create Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: ${{ env.KIND_CLUSTER_NAME }}
+
+      - name: 🛠️ Setup Kind Cluster
+        run: |
+          kind load docker-image -n ${{ env.KIND_CLUSTER_NAME }} ${{ env.IMAGE_REF }}
+          kubectl apply -f test_assets/crds/sbom_report.yaml
+          kubectl apply -f test_assets/crds/vulnerability_report.yaml
+          kubectl create namespace etcd
+          kubectl create namespace rabbit-one
+          kubectl create namespace rabbit-two
+
+      - name: 🛠️ Install Trivy Operator Web Ui
+        run: |
+          helm install \
+            --namespace trivy-operator-web-ui \
+            --create-namespace \
+            -f test_assets/helm/values.integration-tests.yaml \
+            --set operator.image.tag="${{ github.sha }}" \
+            trivy-operator-web-ui \
+            oci://ghcr.io/trivy-operator-web-ui/chart/trivy-operator-web-ui:0.1.0
+
+      - name: ⌛ Waiting for operator to be ready
+        run: |
+          echo "Wating for operator to be ready ..."
+
+          MAX_TRIES=15
+          TRY=0
+          readyReplicas=0
+
+          while (( TRY < MAX_TRIES )) && (( readyReplicas != 1 )); do
+              echo "  - Try $TRY"
+              readyReplicas=$(kubectl -n trivy-operator-web-ui get deploy trivy-operator-web-ui-operator -ojson | jq '.status.readyReplicas')
+              if (( readyReplicas == 0 )); then
+                  TRY=$((TRY + 1))
+                  sleep 2
+              else
+                  echo "*** Operator ready ! ***"
+              fi
+          done
+
+          if (( readyReplicas == 0 )); then
+            echo "Could not start operator, abort !"
+            kubectl -n trivy-operator-web-ui describe deploy trivy-operator-web-ui-operator
+            kubectl -n trivy-operator-web-ui logs deployment/trivy-operator-web-ui-operator
+            exit 1
+          fi
+
+      - name: 🛠️ Setup port-forward
+        run: |
+          kubectl \
+            -n trivy-operator-web-ui \
+            port-forward \
+            service/trivy-operator-web-ui-operator \
+            8080:http &
+
+      - name: 🧪 Integration Tests
+        run: |
+          cargo nextest run --no-fail-fast --test '*' -j1
+
+      - name: 🚀 Push
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          tags: ${{ env.IMAGE_REF }}
