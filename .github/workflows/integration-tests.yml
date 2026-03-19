@@ -4,22 +4,35 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "**.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/tests.yml"
-
 
 jobs:
+  compute-tree-hash:
+    name: 🖥️ Compute Tree Hash
+    runs-on: ubuntu-latest
+    outputs:
+      TREE_HASH: ${{ steps.compute.outputs.TREE_HASH }}
+    steps:
+      - name: 📦 Checkout repository code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🖥️ Compute Tree Hash
+        id: compute
+        run: |
+          echo "TREE_HASH=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+          echo "Tree Hash is $(git rev-parse HEAD^{tree})"
+
   tests:
     name: 🧪 Integration Tests
+    needs: ["compute-tree-hash"]
     runs-on: ubuntu-latest
     env:
       KWOK_VERSION: "v0.7.0"
       RUST_VERSION: "1.93.1"
-      IMAGE_REF: ghcr.io/trivy-operator-web-ui/operator:${{ github.sha }}
+      IMAGE_REF: ghcr.io/trivy-operator-web-ui/operator:${{ needs.compute-tree-hash.outputs.TREE_HASH }}
       KIND_CLUSTER_NAME: "operator-tests"
+      INSTALL_NAMESPACE: "trivy-operator-web-ui"
       CARGO_TERM_COLOR: always
     steps:
       - name: 📦 Checkout repository code
@@ -89,7 +102,7 @@ jobs:
             --namespace trivy-operator-web-ui \
             --create-namespace \
             -f test_assets/helm/values.integration-tests.yaml \
-            --set operator.image.tag="${{ github.sha }}" \
+            --set operator.image.tag="${{ needs.compute-tree-hash.outputs.TREE_HASH }}" \
             trivy-operator-web-ui \
             oci://ghcr.io/trivy-operator-web-ui/chart/trivy-operator-web-ui:0.1.0
 
@@ -103,7 +116,7 @@ jobs:
 
           while (( TRY < MAX_TRIES )) && (( readyReplicas != 1 )); do
               echo "  - Try $TRY"
-              readyReplicas=$(kubectl -n trivy-operator-web-ui get deploy trivy-operator-web-ui-operator -ojson | jq '.status.readyReplicas')
+              readyReplicas=$(kubectl -n ${{ env.INSTALL_NAMESPACE }} get deploy trivy-operator-web-ui-operator -ojson | jq '.status.readyReplicas')
               if (( readyReplicas == 0 )); then
                   TRY=$((TRY + 1))
                   sleep 2
@@ -114,15 +127,15 @@ jobs:
 
           if (( readyReplicas == 0 )); then
             echo "Could not start operator, abort !"
-            kubectl -n trivy-operator-web-ui describe deploy trivy-operator-web-ui-operator
-            kubectl -n trivy-operator-web-ui logs deployment/trivy-operator-web-ui-operator
+            kubectl -n ${{ env.INSTALL_NAMESPACE }} describe deployment/trivy-operator-web-ui-operator
+            kubectl -n ${{ env.INSTALL_NAMESPACE }} logs deployment/trivy-operator-web-ui-operator
             exit 1
           fi
 
       - name: 🛠️ Setup port-forward
         run: |
           kubectl \
-            -n trivy-operator-web-ui \
+            -n ${{ env.INSTALL_NAMESPACE }} \
             port-forward \
             service/trivy-operator-web-ui-operator \
             8080:http &
