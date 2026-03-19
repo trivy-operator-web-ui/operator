@@ -16,10 +16,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: 🖥️ Compute Tree Hash
-        run: |
-          export TREE_HASH=$(git rev-parse HEAD^{tree})
-
       - name: 🤖 Configure bot user
         run: |
           git config user.name "github-actions[bot]"
@@ -62,4 +58,5 @@ jobs:
 
       - name: 📦 Release and Publish
         run: |
+          export TREE_HASH=$(git rev-parse HEAD^{tree})
           cog bump --auto --skip-ci
