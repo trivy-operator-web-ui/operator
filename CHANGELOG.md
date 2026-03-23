@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [0.1.1](https://github.com/trivy-operator-web-ui/operator/compare/e41c7633585db796feee744c917a9b3ede019c4c..0.1.1) - 2026-03-23
+#### Bug Fixes
+- (**sbom**) remove ':' for windows filenames - ([e41c763](https://github.com/trivy-operator-web-ui/operator/commit/e41c7633585db796feee744c917a9b3ede019c4c)) - ABWassim
+#### Tests
+- update helm chart - ([cd6c480](https://github.com/trivy-operator-web-ui/operator/commit/cd6c48054e66536daebe0b2bd61ed8f3ce403e70)) - ABWassim
+#### Miscellaneous Chores
+- yaml extension - ([0dbde89](https://github.com/trivy-operator-web-ui/operator/commit/0dbde890d26572454f850812f85391296eba9eb3)) - ABWassim
+
+- - -
+
 ## [0.1.0](https://github.com/trivy-operator-web-ui/operator/compare/70c2964a00ace30a4a9326fe1efb44f1eb93adcd..0.1.0) - 2026-03-19
 #### Features
 - api authentication - ([505b642](https://github.com/trivy-operator-web-ui/operator/commit/505b6421e7930e297153ef51c6fcdbbfd3ae0ea0)) - ABWassim
