@@ -28,7 +28,6 @@ jobs:
     needs: ["compute-tree-hash"]
     runs-on: ubuntu-latest
     env:
-      KWOK_VERSION: "v0.7.0"
       RUST_VERSION: "1.93.1"
       IMAGE_REF: ghcr.io/trivy-operator-web-ui/operator:${{ needs.compute-tree-hash.outputs.TREE_HASH }}
       KIND_CLUSTER_NAME: "operator-tests"

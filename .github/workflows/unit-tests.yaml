@@ -6,7 +6,6 @@ on:
       - main
 
 env:
-  KWOK_VERSION: "v0.7.0"
   RUST_VERSION: "1.93.1"
   CARGO_TERM_COLOR: always
 
@@ -42,7 +41,6 @@ jobs:
       - name: 🛠️ Install Kwok
         uses: kubernetes-sigs/kwok@main
         with:
-          KWOK_VERSION: ${{ env.KWOK_VERSION}}
           command: kwokctl
       
       - name: 🛠️ Setup Kwok cluster
