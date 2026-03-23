@@ -2,6 +2,8 @@ operator:
   image:
     repository: "ghcr.io/trivy-operator-web-ui/operator"
     pullPolicy: IfNotPresent
+  
+  url: "dummy"
 
   portal:
     username: "username"
@@ -9,6 +11,6 @@ operator:
 
 frontend:
   image:
-    repository: "nginx"
+    repository: "ghcr.io/trivy-operator-web-ui/frontend"
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "0.1.2"
