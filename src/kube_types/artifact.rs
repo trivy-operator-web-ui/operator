@@ -26,11 +26,11 @@ impl Display for Artifact {
         }
 
         if let Some(tag) = &self.tag {
-            buffer.push_str(&format!(":{}", &tag));
+            buffer.push_str(&format!("_{}", &tag));
         }
 
         if let Some(digest) = &self.digest {
-            buffer.push_str(&format!("@{}", &digest[..15]));
+            buffer.push_str(&format!("_{}", &digest[..15].replacen(":", "_", 1))); // No ':' allowed in Windows filenames
         }
 
         write!(f, "{}", buffer)
