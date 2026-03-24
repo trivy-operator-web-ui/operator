@@ -1,0 +1,26 @@
+name: 🔎 Commit Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  commit-check:
+    name: 🔎 Commit Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🛠️ Install Cocogitto
+        uses: cocogitto/cocogitto-action@main
+        with:
+          install-only: true
+
+      - name: 🔎 Check commits from latest tag
+        run: |
+          cog check --from-latest-tag
