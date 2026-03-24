@@ -4,6 +4,12 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/integration-tests.yaml"
+      - "Dockerfile"
 
 jobs:
   compute-tree-hash:
