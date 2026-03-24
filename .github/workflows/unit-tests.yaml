@@ -4,6 +4,12 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/unit-tests.yaml"
+      - "Dockerfile"
 
 env:
   RUST_VERSION: "1.93.1"
