@@ -5,3 +5,4 @@ test_assets
 .gitignore
 Dockerfile
 README.md
+.bruno
