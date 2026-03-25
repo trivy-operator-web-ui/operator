@@ -63,6 +63,8 @@ async fn download_sbom_archive(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use actix_web::{
         App,
         http::StatusCode,
@@ -74,12 +76,14 @@ mod tests {
 
     use crate::{
         api::{
+            error::ZipSbomError,
             routes::{build_sbom_report_api_service, sbom_report::SCOPE},
             services::tests_utils::{
                 init_cookie_service, init_jwt_service, init_sbom_report_service,
             },
         },
         common_test_utils::{ETCD, RABBIT_ONE, read_test_sbom_report},
+        kube_types::Artifact,
     };
 
     const SIMPLE_PATH: &str = "simple";
@@ -189,21 +193,39 @@ mod tests {
         let token = jwt_service.generate();
         let cookie = cookie_service.create_jwt_cookie(&token);
 
-        let existing_artifacts = Vec::from([
+        let dummy_artifact = Artifact {
+            digest: Some("dummy".to_string()),
+            mime_type: Some("dummy".to_string()),
+            repository: Some("dummy".to_string()),
+            tag: Some("dummy".to_string()),
+        };
+
+        let body = Vec::from([
             read_test_sbom_report(ETCD).unwrap().report.artifact,
-            read_test_sbom_report(RABBIT_ONE).unwrap().report.artifact,
+            dummy_artifact.clone(),
         ]);
 
         let path = format!("{}/{}", SCOPE, DOWNLOAD_PATH);
+
         let req = TestRequest::post()
             .uri(&path)
-            .cookie(cookie)
-            .set_json(existing_artifacts)
+            .cookie(cookie.clone())
+            .set_json(body.clone())
             .to_request();
 
         let resp = test::call_service(&app, req).await;
 
-        assert!(resp.status().is_success());
+        assert!(resp.status() == StatusCode::NOT_FOUND);
+
+        let req = TestRequest::post()
+            .uri(&path)
+            .cookie(cookie)
+            .set_json(body)
+            .to_request();
+
+        let json_resp: ZipSbomError = test::call_and_read_body_json(&app, req).await;
+
+        assert!(json_resp == ZipSbomError::ArtifactsNotFound(HashSet::from([dummy_artifact])));
 
         Ok(())
     }

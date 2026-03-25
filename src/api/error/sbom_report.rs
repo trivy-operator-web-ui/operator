@@ -30,6 +30,9 @@ impl ResponseError for ZipSbomError {
     }
 
     fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
+        match *self {
+            Self::ArtifactsNotFound(_) => StatusCode::NOT_FOUND,
+            Self::CreateZipError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
