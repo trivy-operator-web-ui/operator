@@ -44,17 +44,15 @@ jobs:
       - name: 🛠️ Setup Crane
         run: |
           mkdir crane
-          wget https://github.com/google/go-containerregistry/releases/download/v0.21.3/go-containerregistry_Linux_x86_64.tar.gz
+          wget -q https://github.com/google/go-containerregistry/releases/download/v0.21.3/go-containerregistry_Linux_x86_64.tar.gz
           tar -xf go-containerregistry_Linux_x86_64.tar.gz -C ./crane
           sudo mv ./crane/crane /usr/bin
           rm -r go-containerregistry_Linux_x86_64.tar.gz crane
 
       - name: 🛠️ Install Cocogitto
-        run: |
-          wget https://github.com/cocogitto/cocogitto/releases/download/7.0.0/cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz
-          tar -xf cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz
-          sudo mv x86_64-unknown-linux-musl/cog /usr/bin
-          rm -r cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz x86_64-unknown-linux-musl
+        uses: cocogitto/cocogitto-action@main
+        with:
+          install-only: true
 
       - name: 📦 Release and Publish
         run: |
