@@ -10,9 +10,9 @@ One main feature of this project is to aggregate reports by artifact (repository
 
 # Deployment
 
-An container image for this repository is avaible at `ghcr.io/trivy-operator-web-ui/operator`.
+An container image for this project is available at `ghcr.io/trivy-operator-web-ui/operator`.
 
-This repository is part of the [Trivy Operator Web UI](https://github.com/orgs/trivy-operator-web-ui/repositories) project and can be deployed using this [Helm Chart](https://github.com/trivy-operator-web-ui/helm-chart)
+This repository is part of the [Trivy Operator Web UI](https://github.com/orgs/trivy-operator-web-ui/repositories) project and can be deployed using this [Helm Chart](https://github.com/trivy-operator-web-ui/helm-chart).
 
 # TLS
 
