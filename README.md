@@ -6,7 +6,9 @@ This repository contains the code for the Backend of the Trivy Operator Web UI p
 
 Both components run in parallel or concurrently depending of the number of cores available and the runtine behavior.
 
-One main feature of this project is to aggregate reports by artifact (repository, tag and digest) rather than exposing them all, since the Trivy Operator [duplicates reports for the same image digest](https://aquasecurity.github.io/trivy-operator/v0.30.1/faq/). The idea is to expose "Artifact Reports" rather than "Workload Reports". All of the workloads that use an artifact are then linked to that artifact and also exposed to get full tracking of which workload uses which artifact.
+One main feature of this project is to aggregate reports by artifact (repository, tag and digest) rather than exposing them all, since the Trivy Operator [duplicates reports for the same image digest](https://aquasecurity.github.io/trivy-operator/v0.30.1/faq/). The idea is, for Vulnerability and SBOMs, to expose "Artifact Reports" rather than "Workload Reports". All of the workloads that use an artifact are then linked to that artifact and also exposed to get full tracking of which workload uses which artifact.
+
+This project also allow people to download the SBOMs (usually in the CycloneDX format) exposed in the SbomReports CRDs instances.
 
 # Deployment
 
