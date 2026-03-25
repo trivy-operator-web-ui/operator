@@ -15,10 +15,8 @@ async fn main() -> anyhow::Result<()> {
     let vulnerability_reports_state = ReportState::<ImageVulnerabilityReport>::default();
     let sbom_reports_state = ReportState::<ImageSbomReport>::default();
 
-    let username =
-        env::var("PORTAL_USERNAME").expect("PORTAL_USERNAME environment variable must be set !");
-    let password =
-        env::var("PORTAL_PASSWORD").expect("PORTAL_PASSWORD environment variable must be set !");
+    let username = env::var("USERNAME").expect("USERNAME environment variable must be set !");
+    let password = env::var("PASSWORD").expect("PASSWORD environment variable must be set !");
 
     let logger = tracing_subscriber::fmt::layer().compact();
     let env_filter = EnvFilter::try_from_default_env()
