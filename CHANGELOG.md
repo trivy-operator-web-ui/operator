@@ -2,6 +2,26 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [0.2.0](https://github.com/trivy-operator-web-ui/operator/compare/a7ef21caa5f433197963046368382fd235795597..0.2.0) - 2026-03-25
+#### Features
+- ![BREAKING](https://img.shields.io/badge/BREAKING-red) rename username/password env vars - ([212683e](https://github.com/trivy-operator-web-ui/operator/commit/212683e982738c19773312523507cd609aa19f8a)) - ABWassim
+#### Bug Fixes
+- http error code ZipSbomError - ([665ccb5](https://github.com/trivy-operator-web-ui/operator/commit/665ccb59664a2ca43954d01173f2eeef7c606f3b)) - ABWassim
+#### Documentation
+- readme and contributing guidelines - ([60723f5](https://github.com/trivy-operator-web-ui/operator/commit/60723f5ec477573855590911a4d25ee3456522df)) - ABWassim
+#### Tests
+- cargo format - ([26e4674](https://github.com/trivy-operator-web-ui/operator/commit/26e467425f1231f06eb6f65ed95cc16e22c86b71)) - ABWassim
+#### Continuous Integration
+- improvements - ([509c9e6](https://github.com/trivy-operator-web-ui/operator/commit/509c9e649a394ab7c1a4c326e7d979073fd5cadc)) - ABWassim
+- check commits - ([1c26ad4](https://github.com/trivy-operator-web-ui/operator/commit/1c26ad44747893c7de6afc75efdd36bbd7455794)) - ABWassim
+- run tests only when needed - ([a7ef21c](https://github.com/trivy-operator-web-ui/operator/commit/a7ef21caa5f433197963046368382fd235795597)) - ABWassim
+#### Miscellaneous Chores
+- update chart reference - ([7be5e29](https://github.com/trivy-operator-web-ui/operator/commit/7be5e290ffeaa1712f5afa545d8b1cc6b3b0c18b)) - ABWassim
+- bruno - ([f205062](https://github.com/trivy-operator-web-ui/operator/commit/f20506275a26d8f98dac924c211e837f128cb480)) - ABWassim
+- license - ([b40644f](https://github.com/trivy-operator-web-ui/operator/commit/b40644ff6193a07ce660790217ecb1f3d0d783c4)) - ABWassim
+
+- - -
+
 ## [0.1.1](https://github.com/trivy-operator-web-ui/operator/compare/e41c7633585db796feee744c917a9b3ede019c4c..0.1.1) - 2026-03-23
 #### Bug Fixes
 - (**sbom**) remove ':' for windows filenames - ([e41c763](https://github.com/trivy-operator-web-ui/operator/commit/e41c7633585db796feee744c917a9b3ede019c4c)) - ABWassim
