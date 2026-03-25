@@ -109,7 +109,7 @@ jobs:
             -f test_assets/helm/values.integration-tests.yaml \
             --set operator.image.tag="${{ needs.compute-tree-hash.outputs.TREE_HASH }}" \
             trivy-operator-web-ui \
-            oci://ghcr.io/trivy-operator-web-ui/chart:0.2.1
+            oci://ghcr.io/trivy-operator-web-ui/chart:0.3.0
 
       - name: ⌛ Waiting for operator to be ready
         run: |
