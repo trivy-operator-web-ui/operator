@@ -6,3 +6,4 @@ test_assets
 Dockerfile
 README.md
 .bruno
+.kube

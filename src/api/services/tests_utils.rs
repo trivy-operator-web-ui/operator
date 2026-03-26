@@ -2,14 +2,16 @@ use std::collections::HashSet;
 
 use crate::{
     api::services::{
-        CookieService, JwtService, SbomReportService, UserService, VulnerabilityReportService,
+        CookieService, ExposedSecretReportService, JwtService, SbomReportService, UserService,
+        VulnerabilityReportService,
     },
     common_test_utils::{
-        RESOURCES, TEST_PASSWORD, TEST_USERNAME, read_test_sbom_report,
-        read_test_vulnerability_report,
+        RESOURCES, TEST_PASSWORD, TEST_USERNAME, read_test_exposed_secret_report,
+        read_test_sbom_report, read_test_vulnerability_report,
     },
     kube_types::{
-        Workload, sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport,
+        Workload, exposed_secret_report::ImageExposedSecretReport, sbom_report::ImageSbomReport,
+        vulnerability_report::ImageVulnerabilityReport,
     },
     states::ReportState,
 };
@@ -52,6 +54,26 @@ pub fn init_vulnerability_report_service() -> VulnerabilityReportService {
     }
 
     VulnerabilityReportService::new(state.clone())
+}
+
+pub fn init_exposed_secret_report_service() -> ExposedSecretReportService {
+    let state = ReportState::<ImageExposedSecretReport>::default();
+
+    let mut reports = state.reports.lock().unwrap();
+    let mut owners = state.owners.lock().unwrap();
+
+    for rsc in RESOURCES {
+        let exposed_secret_report = read_test_exposed_secret_report(rsc).unwrap();
+
+        let artifact = exposed_secret_report.report.artifact.clone();
+        reports.insert(artifact.clone(), exposed_secret_report.report);
+
+        let labels = exposed_secret_report.metadata.labels.unwrap();
+        let workload = Workload::new(labels);
+        owners.insert(artifact, HashSet::from([workload]));
+    }
+
+    ExposedSecretReportService::new(state.clone())
 }
 
 pub fn init_user_service() -> UserService {

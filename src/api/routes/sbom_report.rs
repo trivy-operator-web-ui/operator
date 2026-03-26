@@ -63,7 +63,7 @@ async fn download_sbom_archive(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, io::Cursor};
 
     use actix_web::{
         App,
@@ -73,9 +73,11 @@ mod tests {
     };
     use anyhow::Result;
     use test::{TestRequest, init_service};
+    use zip::ZipArchive;
 
     use crate::{
         api::{
+            dto::SimpleSbomReportDTO,
             error::ZipSbomError,
             routes::{build_sbom_report_api_service, sbom_report::SCOPE},
             services::tests_utils::{
@@ -134,8 +136,10 @@ mod tests {
         let req = TestRequest::get().cookie(cookie).uri(&path).to_request();
 
         let resp = test::call_service(&app, req).await;
+        assert!(resp.status() == StatusCode::OK);
 
-        assert!(resp.status().is_success());
+        let resp: Vec<SimpleSbomReportDTO> = test::read_body_json(resp).await;
+        assert!(resp.len() == 2);
 
         Ok(())
     }
@@ -170,8 +174,11 @@ mod tests {
             .to_request();
 
         let resp = test::call_service(&app, req).await;
+        assert!(resp.status() == StatusCode::OK);
 
-        assert!(resp.status().is_success());
+        let bytes = test::read_body(resp).await;
+        let zip = ZipArchive::new(Cursor::new(bytes)).unwrap();
+        assert!(zip.len() == 2);
 
         Ok(())
     }
@@ -206,26 +213,17 @@ mod tests {
         ]);
 
         let path = format!("{}/{}", SCOPE, DOWNLOAD_PATH);
-
-        let req = TestRequest::post()
-            .uri(&path)
-            .cookie(cookie.clone())
-            .set_json(body.clone())
-            .to_request();
-
-        let resp = test::call_service(&app, req).await;
-
-        assert!(resp.status() == StatusCode::NOT_FOUND);
-
         let req = TestRequest::post()
             .uri(&path)
             .cookie(cookie)
             .set_json(body)
             .to_request();
 
-        let json_resp: ZipSbomError = test::call_and_read_body_json(&app, req).await;
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status() == StatusCode::NOT_FOUND);
 
-        assert!(json_resp == ZipSbomError::ArtifactsNotFound(HashSet::from([dummy_artifact])));
+        let resp: ZipSbomError = test::read_body_json(resp).await;
+        assert!(resp == ZipSbomError::ArtifactsNotFound(HashSet::from([dummy_artifact])));
 
         Ok(())
     }
