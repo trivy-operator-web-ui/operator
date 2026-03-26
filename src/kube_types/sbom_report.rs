@@ -16,7 +16,7 @@ use k8s_openapi::Resource;
 use kube::api::ObjectMeta;
 use serde_json::Value;
 
-use crate::kube_types::Artifact;
+use crate::kube_types::{Artifact, Registry, Scanner};
 
 use self::prelude::*;
 
@@ -63,24 +63,11 @@ pub struct ImageSbomReport {
     pub artifact: Artifact,
     pub components: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registry: Option<SbomRegistry>,
-    pub scanner: SbomScanner,
+    pub registry: Option<Registry>,
+    pub scanner: Scanner,
     pub summary: SbomReportSummary,
     #[serde(rename = "updateTimestamp")]
     pub update_timestamp: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct SbomRegistry {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub server: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct SbomScanner {
-    pub name: String,
-    pub vendor: String,
-    pub version: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]

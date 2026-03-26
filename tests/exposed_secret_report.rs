@@ -4,14 +4,12 @@ use awc::cookie::Cookie;
 use awc::http::StatusCode;
 use kube::Client;
 
-use trivy_operator_web_ui::api::dto::{
-    ImageVulnerabilityReportDTO, SimpleImageVulnerabilityReportDTO,
-};
-use trivy_operator_web_ui::kube_types::{Artifact, VulnerabilityReport};
+use trivy_operator_web_ui::api::dto::{ImageExposedSecretReportDTO, SimpleExposedSecretReportDTO};
+use trivy_operator_web_ui::kube_types::{Artifact, ExposedSecretReport};
 
 mod utils;
 use crate::utils::{
-    ETCD, VULNERABILITY_REPORT_GVK, apply_test_resource, cleanup_test_namespace,
+    ETCD, EXPOSED_SECRET_REPORT_GVK, apply_test_resource, cleanup_test_namespace,
     delete_test_resource, get_jwt_from_api, get_test_endpoint,
 };
 
@@ -21,7 +19,7 @@ async fn service_is_protected() -> Result<()> {
     let endpoint = get_test_endpoint();
 
     let res = http_client
-        .get(format!("{}/api/vulnerability-reports/simple", &endpoint))
+        .get(format!("{}/api/exposed-secret-reports/simple", &endpoint))
         .send()
         .await
         .unwrap();
@@ -36,7 +34,7 @@ async fn service_is_protected() -> Result<()> {
     };
 
     let res = http_client
-        .post(format!("{}/api/vulnerability-reports/detailed", &endpoint))
+        .post(format!("{}/api/exposed-secret-reports/detailed", &endpoint))
         .send_json(&dummy_artifact)
         .await
         .unwrap();
@@ -50,7 +48,7 @@ async fn service_is_protected() -> Result<()> {
 async fn events() -> Result<()> {
     let client: Client = Client::try_default().await?;
     let http_client = awc::Client::default();
-    let gvk = VULNERABILITY_REPORT_GVK;
+    let gvk = EXPOSED_SECRET_REPORT_GVK;
 
     let endpoint = get_test_endpoint();
 
@@ -58,29 +56,29 @@ async fn events() -> Result<()> {
 
     let etcd = apply_test_resource(client.clone(), gvk.clone(), ETCD)
         .await?
-        .try_parse::<VulnerabilityReport>()
+        .try_parse::<ExposedSecretReport>()
         .unwrap();
 
     let jwt = get_jwt_from_api(http_client.clone()).await;
 
     let simple_reports = http_client
-        .get(format!("{}/api/vulnerability-reports/simple", &endpoint))
+        .get(format!("{}/api/exposed-secret-reports/simple", &endpoint))
         .cookie(Cookie::new("jwtToken", &jwt))
         .send()
         .await
         .unwrap()
-        .json::<Vec<SimpleImageVulnerabilityReportDTO>>()
+        .json::<Vec<SimpleExposedSecretReportDTO>>()
         .await?;
 
     assert!(simple_reports.len() == 1);
 
     let detailed_report = http_client
-        .post(format!("{}/api/vulnerability-reports/detailed", &endpoint))
+        .post(format!("{}/api/exposed-secret-reports/detailed", &endpoint))
         .cookie(Cookie::new("jwtToken", &jwt))
         .send_json(&etcd.report.artifact)
         .await
         .unwrap()
-        .json::<ImageVulnerabilityReportDTO>()
+        .json::<ImageExposedSecretReportDTO>()
         .await?;
 
     assert!(detailed_report.report.artifact == etcd.report.artifact);
@@ -88,12 +86,12 @@ async fn events() -> Result<()> {
     delete_test_resource(client.clone(), gvk.clone(), ETCD).await?;
 
     let simple_reports = http_client
-        .get(format!("{}/api/vulnerability-reports/simple", &endpoint))
+        .get(format!("{}/api/exposed-secret-reports/simple", &endpoint))
         .cookie(Cookie::new("jwtToken", &jwt))
         .send()
         .await
         .unwrap()
-        .json::<Vec<SimpleImageVulnerabilityReportDTO>>()
+        .json::<Vec<SimpleExposedSecretReportDTO>>()
         .await?;
 
     assert!(simple_reports.is_empty());

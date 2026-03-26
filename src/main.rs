@@ -4,7 +4,10 @@ use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt, util::Subscr
 use trivy_operator_web_ui::{
     api::start_api,
     controller::start_controller,
-    kube_types::{sbom_report::ImageSbomReport, vulnerability_report::ImageVulnerabilityReport},
+    kube_types::{
+        exposed_secret_report::ImageExposedSecretReport, sbom_report::ImageSbomReport,
+        vulnerability_report::ImageVulnerabilityReport,
+    },
     states::ReportState,
 };
 
@@ -14,6 +17,7 @@ use std::env;
 async fn main() -> anyhow::Result<()> {
     let vulnerability_reports_state = ReportState::<ImageVulnerabilityReport>::default();
     let sbom_reports_state = ReportState::<ImageSbomReport>::default();
+    let exposed_secret_report_state = ReportState::<ImageExposedSecretReport>::default();
 
     let username = env::var("USERNAME").expect("USERNAME environment variable must be set !");
     let password = env::var("PASSWORD").expect("PASSWORD environment variable must be set !");
@@ -28,11 +32,13 @@ async fn main() -> anyhow::Result<()> {
     let controller = start_controller(
         vulnerability_reports_state.clone(),
         sbom_reports_state.clone(),
+        exposed_secret_report_state.clone(),
     );
 
     let api = start_api(
         vulnerability_reports_state.clone(),
         sbom_reports_state.clone(),
+        exposed_secret_report_state.clone(),
         username,
         password,
     );

@@ -55,6 +55,7 @@ jobs:
           kwokctl kubectl config set-context --current --namespace default
           kwokctl kubectl apply -f test_assets/crds/sbom_report.yaml
           kwokctl kubectl apply -f test_assets/crds/vulnerability_report.yaml
+          kwokctl kubectl apply -f test_assets/crds/exposed_secret_report.yaml
           kwokctl kubectl create namespace etcd
           kwokctl kubectl create namespace rabbit-one
           kwokctl kubectl create namespace rabbit-two
