@@ -97,6 +97,7 @@ jobs:
           kind load docker-image -n ${{ env.KIND_CLUSTER_NAME }} ${{ env.IMAGE_REF }}
           kubectl apply -f test_assets/crds/sbom_report.yaml
           kubectl apply -f test_assets/crds/vulnerability_report.yaml
+          kubectl apply -f test_assets/crds/exposed_secret_report.yaml
           kubectl create namespace etcd
           kubectl create namespace rabbit-one
           kubectl create namespace rabbit-two
@@ -109,7 +110,7 @@ jobs:
             -f test_assets/helm/values.integration-tests.yaml \
             --set operator.image.tag="${{ needs.compute-tree-hash.outputs.TREE_HASH }}" \
             trivy-operator-web-ui \
-            oci://ghcr.io/trivy-operator-web-ui/chart:0.3.0
+            oci://ghcr.io/trivy-operator-web-ui/chart:0.5.0
 
       - name: ⌛ Waiting for operator to be ready
         run: |

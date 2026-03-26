@@ -106,9 +106,9 @@ mod tests {
 
     #[test]
     fn get_simple_sbom_reports() -> Result<()> {
-        let sbom_report_state = init_sbom_report_service();
+        let sbom_report_service = init_sbom_report_service();
 
-        let simple_sbom_report = sbom_report_state.get_simple_sbom_reports();
+        let simple_sbom_report = sbom_report_service.get_simple_sbom_reports();
 
         assert!(simple_sbom_report.len() == 2);
 
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn zip_sbom_reports_with_known_artifacts() -> Result<()> {
-        let sbom_report_state = init_sbom_report_service();
+        let sbom_report_service = init_sbom_report_service();
 
         let existing_artifacts = [
             read_test_sbom_report(ETCD).unwrap().report.artifact,
@@ -125,7 +125,7 @@ mod tests {
         ]
         .to_vec();
 
-        let sbom_report_zip = sbom_report_state.zip_sboms_by_artifacts(existing_artifacts);
+        let sbom_report_zip = sbom_report_service.zip_sboms_by_artifacts(existing_artifacts);
 
         assert!(sbom_report_zip.is_ok());
 
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn zip_sbom_reports_with_unknown_artifacts() -> Result<()> {
-        let sbom_report_state = init_sbom_report_service();
+        let sbom_report_service = init_sbom_report_service();
 
         let dummy_artifact = Artifact {
             digest: Some("dummy".to_string()),
@@ -152,7 +152,7 @@ mod tests {
         ]
         .to_vec();
 
-        let sbom_report_zip = sbom_report_state.zip_sboms_by_artifacts(unexisting_artifacts);
+        let sbom_report_zip = sbom_report_service.zip_sboms_by_artifacts(unexisting_artifacts);
 
         assert!(sbom_report_zip.is_err_and(
             |err| err == ZipSbomError::ArtifactsNotFound(HashSet::from([dummy_artifact]))
