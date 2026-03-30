@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [0.3.0](https://github.com/trivy-operator-web-ui/operator/compare/f6c9f4d071de522d6857eab87f26a29b619b89ec..0.3.0) - 2026-03-30
+#### Features
+- exposed secret reports - ([cdfd8f3](https://github.com/trivy-operator-web-ui/operator/commit/cdfd8f37ca3883958236ffc1577621b8726960bb)) - ABWassim
+#### Documentation
+- readme and contrib improvements - ([8dd587b](https://github.com/trivy-operator-web-ui/operator/commit/8dd587b91a169f3c5c1195e3f778e84d740a4521)) - ABWassim
+- readme typo - ([f6c9f4d](https://github.com/trivy-operator-web-ui/operator/commit/f6c9f4d071de522d6857eab87f26a29b619b89ec)) - ABWassim
+
+- - -
+
 ## [0.2.0](https://github.com/trivy-operator-web-ui/operator/compare/a7ef21caa5f433197963046368382fd235795597..0.2.0) - 2026-03-25
 #### Features
 - ![BREAKING](https://img.shields.io/badge/BREAKING-red) rename username/password env vars - ([212683e](https://github.com/trivy-operator-web-ui/operator/commit/212683e982738c19773312523507cd609aa19f8a)) - ABWassim
