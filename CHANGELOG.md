@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [0.3.1](https://github.com/trivy-operator-web-ui/operator/compare/b263895461643396a3c01f507a0b249ce5242e92..0.3.1) - 2026-04-09
+#### Bug Fixes
+- ![BREAKING](https://img.shields.io/badge/BREAKING-red) (**env-vars**) conflicts with system env vars - ([b263895](https://github.com/trivy-operator-web-ui/operator/commit/b263895461643396a3c01f507a0b249ce5242e92)) - cn
+#### Documentation
+- update contributing guide - ([d30919b](https://github.com/trivy-operator-web-ui/operator/commit/d30919bf762f87f4944fe58521d9147ad6d8845c)) - cn
+#### Tests
+- (**integration**) update chart - ([3adb771](https://github.com/trivy-operator-web-ui/operator/commit/3adb7719d43e57a43d2f102a08c64880fa915154)) - cn
+#### Miscellaneous Chores
+- fmt - ([7d6635a](https://github.com/trivy-operator-web-ui/operator/commit/7d6635a614dc3e58ddc8588061ec0a5e790ef7e3)) - cn
+
+- - -
+
 ## [0.3.0](https://github.com/trivy-operator-web-ui/operator/compare/f6c9f4d071de522d6857eab87f26a29b619b89ec..0.3.0) - 2026-03-30
 #### Features
 - exposed secret reports - ([cdfd8f3](https://github.com/trivy-operator-web-ui/operator/commit/cdfd8f37ca3883958236ffc1577621b8726960bb)) - ABWassim
