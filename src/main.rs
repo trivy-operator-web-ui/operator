@@ -19,8 +19,10 @@ async fn main() -> anyhow::Result<()> {
     let sbom_reports_state = ReportState::<ImageSbomReport>::default();
     let exposed_secret_report_state = ReportState::<ImageExposedSecretReport>::default();
 
-    let username = env::var("API_USERNAME").expect("API_USERNAME environment variable must be set !");
-    let password = env::var("API_PASSWORD").expect("API_PASSWORD environment variable must be set !");
+    let username =
+        env::var("API_USERNAME").expect("API_USERNAME environment variable must be set !");
+    let password =
+        env::var("API_PASSWORD").expect("API_PASSWORD environment variable must be set !");
 
     let logger = tracing_subscriber::fmt::layer().compact();
     let env_filter = EnvFilter::try_from_default_env()
