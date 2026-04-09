@@ -22,9 +22,11 @@ Simply run `cargo build --release` to build the project
 ### C. Start the project
 To start the project, you'll need **port 8080 available on your machine** for the API and a **connection to a Kubernetes Cluster with Trivy Operator CRDs' installed**. For the Kubernetes Cluster, **multiple options exist but the lightest and fastest one** for this project is to use [KWoK](https://kwok.sigs.k8s.io/). It is essentially a Kubernetes distribution that **simulate nodes and has no Kubelet**, which means no container deployment possible. It is more that enough for this project since **we only need Trivy CRDs instances**.  
 
-Once you have your cluster, you'll find in the `./test_assets` folder the Trivy Operator CRDs and some sample ressources to play with.
+Once you have your cluster, you'll find in the `./test_assets` folder the Trivy Operator CRDs and some sample ressources to play with.  
 
-Finally, simply run `USERMANE=<your-username> PASSWORD=<your-password> cargo run --release --bin trivy-operator-web-ui` to build the project. Since we use `Client::try_default()`, it means our Operator can connect to a cluster with the current user's kubeconfig, so if you're locally connected to your KWoK cluster (or any other cluster) and have the right permissions, the Operator should run without any issue.
+Make sure to create the `etcd`, `rabbit-one` and `rabbit-two` namespaces to be able to deploy some of the tests resources.
+
+Finally, simply run `API_USERMANE=<your-username> API_PASSWORD=<your-password> cargo run --release --bin trivy-operator-web-ui` to build the project. Since we use `Client::try_default()`, it means our Operator can connect to a cluster with the current user's kubeconfig, so if you're locally connected to your KWoK cluster (or any other cluster) and have the right permissions, the Operator should run without any issue.
 
 ## 4. Tests
 
